@@ -70,13 +70,23 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 .mini svg{width:52%;height:52%;display:block}
 .mini.pending::after{content:'';position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--sun);border:2.5px solid var(--ink)}
 #ask{position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(10,30,40,.6)}
+#bk{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgba(10,30,40,.6)}
 #ask .card{box-sizing:border-box;max-width:min(520px,100%);background:var(--paper);border:3px solid var(--ink);border-radius:26px;padding:22px 24px;box-shadow:0 8px 0 rgba(27,42,38,.5);text-align:center}
+#bk .card{box-sizing:border-box;max-width:min(520px,100%);background:var(--paper);border:3px solid var(--ink);border-radius:26px;padding:22px 24px;box-shadow:0 8px 0 rgba(27,42,38,.5);text-align:center}
 #ask p{margin:0 0 10px;font-weight:700;font-size:clamp(19px,2.6vw,25px);line-height:1.2;text-wrap:balance}
+#bk p{margin:0 0 10px;font-weight:700;font-size:clamp(19px,2.6vw,25px);line-height:1.2;text-wrap:balance}
 #ask p.sub{font-weight:500;font-size:clamp(14px,1.8vw,17px);line-height:1.4;opacity:.85;margin-bottom:18px}
+#bk p.sub{font-weight:500;font-size:clamp(14px,1.8vw,17px);line-height:1.4;opacity:.85;margin-bottom:18px}
 #ask .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+#bk .row{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
 #ask button{flex:1 1 200px;min-height:56px;padding:10px 16px;border-radius:18px;border:3px solid var(--ink);background:var(--sun);font-weight:700;font-size:17px;box-shadow:0 5px 0 var(--ink)}
+#bk button{flex:1 1 200px;min-height:56px;padding:10px 16px;border-radius:18px;border:3px solid var(--ink);background:var(--sun);font-weight:700;font-size:17px;box-shadow:0 5px 0 var(--ink)}
 #ask #askLocal{background:var(--paper)}
+#bk .plain{background:var(--paper)}
+#bk .row[hidden]{display:none}
+[hidden]{display:none!important}
 #ask button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+#bk button:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #snd[aria-pressed="false"] .wave{display:none}
 #snd[aria-pressed="true"] .mute{display:none}
 #clr i{position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
@@ -216,6 +226,16 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <p id="askT">A saved island was found in your account</p>
       <p class="sub">This device also has an island that was never saved to the account. Which one should open here? The other will be replaced.</p>
       <div class="row"><button id="askCloud" type="button">Use the saved island</button><button id="askLocal" type="button">Keep this device's island</button></div>
+    </div>
+  </div>
+  <div id="bk" hidden role="dialog" aria-labelledby="bkT">
+    <div class="card">
+      <p id="bkT">Back up the island</p>
+      <p class="sub" id="bkSub"></p>
+      <div class="row" id="bkMain"><button id="bkSave" type="button">Back up to a file</button><button id="bkLoad" type="button" class="plain">Restore from a file</button></div>
+      <div class="row" id="bkAsk" hidden><button id="bkYes" type="button">Restore it</button><button id="bkNo" type="button" class="plain">Cancel</button></div>
+      <div class="row" style="margin-top:12px"><button id="bkClose" type="button" class="plain">Close</button></div>
+      <input id="bkFile" type="file" accept=".json,application/json,text/plain" hidden>
     </div>
   </div>
   <div id="care" hidden role="dialog" aria-label="Look after this dinosaur">
@@ -2527,9 +2547,44 @@ async function initCloud() {
   } catch (e) { /* no account storage on this visit: the copy on this device still works */ }
 }
 savBtn.addEventListener('click', async () => {
+  if (bkHeld) { bkHeld = false; return; }
   ac(); save(); sfx.ding(); const had = !!cloud, ok = await cloudSave();
-  banner('Saved', ok ? 'To your account, for any device you sign in on' : had ? 'On this device only: your account could not be reached' : 'On this device', 2600);
+  banner('Saved', ok ? 'To your account, for any device you sign in on' : had ? 'On this device only: your account could not be reached' : 'On this device · hold to back up', 2600);
 });
+
+/* grown-ups' backup: hold the save button to save the island to a file, or bring one back */
+const bkEl = document.getElementById('bk'), bkT = document.getElementById('bkT'), bkSub = document.getElementById('bkSub'), bkMain = document.getElementById('bkMain'), bkAsk = document.getElementById('bkAsk'), bkFile = document.getElementById('bkFile');
+let bkHeld = false, bkTimer = 0, bkPending = null;
+const bkIntro = () => { bkT.textContent = 'Back up the island'; bkSub.textContent = 'Saves the island, every dinosaur and the fossils found so far to a file. Keep it in iCloud Drive or email it to yourself. Restore puts it back on this or any other device.'; bkMain.hidden = false; bkAsk.hidden = true; bkPending = null; };
+function openBackup() { if (care) closeCare(); if (duel) closeDuel(); if (dig) closeDig(); setPicking(false); bkIntro(); bkEl.hidden = false; sfx.pick(); }
+savBtn.addEventListener('pointerdown', () => { clearTimeout(bkTimer); bkHeld = false; bkTimer = setTimeout(() => { bkHeld = true; openBackup(); }, 1100); });
+for (const t of ['pointerup', 'pointerleave', 'pointercancel']) savBtn.addEventListener(t, () => clearTimeout(bkTimer));
+savBtn.addEventListener('contextmenu', ev => ev.preventDefault());
+const n2 = n => String(n).padStart(2, '0');
+async function backupNow() {
+  save(); const d = serialize(), now = new Date(), name = 'cretaceous-creatures-' + now.getFullYear() + '-' + n2(now.getMonth() + 1) + '-' + n2(now.getDate()) + '.json';
+  const text = JSON.stringify({ app: 'cretaceous-creatures', saved: now.toISOString(), park: d });
+  try {
+    const f = new File([text], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: 'Cretaceous Creatures backup' }); bkSub.textContent = 'Backed up. Pick "Save to Files" and choose iCloud Drive to keep it safe.'; return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  bkSub.textContent = 'Backed up to ' + name + ' in your Downloads. Move it to iCloud Drive to keep it safe.';
+}
+document.getElementById('bkSave').addEventListener('click', () => { ac(); backupNow(); });
+document.getElementById('bkLoad').addEventListener('click', () => { bkFile.value = ''; bkFile.click(); });
+bkFile.addEventListener('change', async () => {
+  const f = bkFile.files && bkFile.files[0]; if (!f) return;
+  try {
+    const j = JSON.parse(await f.text()), d = j && j.park ? j.park : j;
+    if (!d || d.v !== 2 || !Array.isArray(d.objs)) throw new Error('not a backup');
+    const n = d.objs.reduce((k, o) => k + (o.d ? o.d.length : 0), 0), when = j.saved ? new Date(j.saved).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : 'an earlier date';
+    bkPending = d; bkT.textContent = 'Restore this island?'; bkSub.textContent = 'Backed up on ' + when + ', with ' + n + (n === 1 ? ' dinosaur or egg' : ' dinosaurs and eggs') + '. It replaces the island on this device.'; bkMain.hidden = true; bkAsk.hidden = false;
+  } catch (e) { bkSub.textContent = 'That file is not a Cretaceous Creatures backup. Pick a file whose name starts with cretaceous-creatures.'; }
+});
+document.getElementById('bkYes').addEventListener('click', () => { if (!bkPending) return; const d = bkPending; bkEl.hidden = true; adopt(JSON.parse(JSON.stringify(d))); dirty(); save(); sfx.grow(); banner('Island restored', 'Welcome back!', 2600); bkIntro(); });
+document.getElementById('bkNo').addEventListener('click', bkIntro);
+document.getElementById('bkClose').addEventListener('click', () => { bkEl.hidden = true; sfx.pick(); });
 function load(d) {
   wipe(); unlocked = new Set(START_DINOS); for (const k of d.fnd || []) if (DEF[k] && DEF[k].cat === 'dino') unlocked.add(k); for (const o of d.objs || []) for (const k of o.d || []) if (DEF[k.t] && DEF[k.t].cat === 'dino') unlocked.add(k.t);
   const ok = (x, y, n) => Number.isInteger(x) && Number.isInteger(y) && canPlace(x, y, n);
