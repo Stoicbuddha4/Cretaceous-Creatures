@@ -1145,14 +1145,17 @@ function canPlace(gx, gy, n, ignore) {
   for (let y = gy; y < gy + n; y++) for (let x = gx; x < gx + n; x++) { const o = occ[ti(x, y)]; if (o && o !== ignore) return false; }
   return true;
 }
-function setOcc(o, on) { for (let y = o.gy; y < o.gy + o.n; y++) for (let x = o.gx; x < o.gx + o.n; x++) { occ[ti(x, y)] = on ? o.id : 0; if (on) tiles[ti(x, y)] = 0; } }
+function setOcc(o, on) { const wet = o.kind === 'pad' && o.style === 'lagoon'; for (let y = o.gy; y < o.gy + o.n; y++) for (let x = o.gx; x < o.gx + o.n; x++) { occ[ti(x, y)] = on ? o.id : 0; if (on && !wet) tiles[ti(x, y)] = 0; } }
+// land dinosaurs live on land (no water under the paddock); sea creatures live in water (at least half the lagoon over painted water)
+function terrainOk(water, gx, gy, n) { let w = 0; for (let y = gy; y < gy + n; y++) for (let x = gx; x < gx + n; x++) if (inB(x, y) && tiles[ti(x, y)] === 2) w++; return water ? w >= Math.ceil(n * n / 2) : w === 0; }
+function terrainMsg(water) { sfx.boing(); banner(water ? 'Sea creatures live in water' : 'Land dinosaurs live on land', water ? 'Paint some water with the water brush, then put it there' : 'Put it on the grass, away from the water', 3400); }
 const ocenter = o => g2w(o.gx + o.n / 2, o.gy + o.n / 2);
 const pbase = o => { const c = ocenter(o); return [c[0], c[1] + (o.n - 1) * TH * 0.3]; };
-function freeSpot(n, cx, cy, maxD = 99) {
+function freeSpot(n, cx, cy, maxD = 99, water) {
   let best = null, bd = 1e9;
   for (let gy = 0; gy <= N - n; gy++) for (let gx = 0; gx <= N - n; gx++) {
-    if (!canPlace(gx, gy, n)) continue;
-    let pen2 = 0; for (let y = gy - 1; y <= gy + n; y++) for (let x = gx - 1; x <= gx + n; x++) { if (!inB(x, y)) { pen2 += 0.12; continue; } const inside = x >= gx && x < gx + n && y >= gy && y < gy + n; if (inside) { if (tiles[ti(x, y)]) pen2 += 3; } else if (occ[ti(x, y)]) pen2 += 0.55; }
+    if (!canPlace(gx, gy, n)) continue; if (water !== undefined && !terrainOk(water, gx, gy, n)) continue;
+    let pen2 = 0; for (let y = gy - 1; y <= gy + n; y++) for (let x = gx - 1; x <= gx + n; x++) { if (!inB(x, y)) { pen2 += 0.12; continue; } const inside = x >= gx && x < gx + n && y >= gy && y < gy + n; if (inside) { if (tiles[ti(x, y)] && !water) pen2 += 3; } else if (occ[ti(x, y)]) pen2 += 0.55; }
     const d = Math.hypot(gx + n / 2 - cx, gy + n / 2 - cy); if (d > maxD) continue; if (d + pen2 < bd) { bd = d + pen2; best = [gx, gy]; }
   }
   return best;
@@ -1312,10 +1315,12 @@ function updFood(f, dt) {
   f.toss = { x0: f.x, y0: f.y, x1: L[0], y1: L[1], t: 0 };
 }
 const passable = (x, y) => inB(x, y) && !occ[ti(x, y)] && tiles[ti(x, y)] !== 2;
+const walkway = (x, y) => inB(x, y) && !occ[ti(x, y)] && tiles[ti(x, y)] === 1;   // people keep to the paths
+const canGo = m => m.type === 'visitor' ? walkway : passable;
 function nearestTile(cx, cy, test) { let best = null, bd = 1e9; for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { if (!test(x, y)) continue; const d = Math.abs(x - cx) + Math.abs(y - cy) + Math.random() * 0.3; if (d < bd) { bd = d; best = [x, y]; } } return best; }
 function nextTile(m) {
   const cx = Math.floor(m.gx), cy = Math.floor(m.gy), cand = [];
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (passable(cx + dx, cy + dy)) cand.push([cx + dx, cy + dy]);
+  const ok = canGo(m); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (ok(cx + dx, cy + dy)) cand.push([cx + dx, cy + dy]);
   if (!cand.length) return null;
   const notBack = l => { const f = l.filter(c => !(c[0] === m.px && c[1] === m.py)); return f.length ? f : l; };
   const paths = cand.filter(c => tiles[ti(c[0], c[1])] === 1);
@@ -1323,7 +1328,7 @@ function nextTile(m) {
   if (Math.random() < 0.75) { const t = nearestTile(cx, cy, (x, y) => tiles[ti(x, y)] === 1 && !occ[ti(x, y)]); if (t) { cand.sort((a, b) => (Math.abs(a[0] - t[0]) + Math.abs(a[1] - t[1])) - (Math.abs(b[0] - t[0]) + Math.abs(b[1] - t[1]))); return cand[0]; } }
   return pick(notBack(cand));
 }
-function settle(m) { if (m.def.air) return; const cx = clamp(Math.floor(m.gx), 0, N - 1), cy = clamp(Math.floor(m.gy), 0, N - 1); const t = passable(cx, cy) ? [cx, cy] : nearestTile(cx, cy, passable); if (t) { m.gx = t[0] + 0.5; m.gy = t[1] + 0.5; } m.px = m.py = -1; m.state = 'idle'; m.wait = rnd(0.4, 1); }
+function settleMover(m) { if (m.def.air) return; const cx = clamp(Math.floor(m.gx), 0, N - 1), cy = clamp(Math.floor(m.gy), 0, N - 1), ok = canGo(m); let t = ok(cx, cy) ? [cx, cy] : nearestTile(cx, cy, ok); if (!t && ok !== passable) t = passable(cx, cy) ? [cx, cy] : nearestTile(cx, cy, passable); /* a visitor hops onto the nearest path; with no paths at all they just stand still */ if (t) { m.gx = t[0] + 0.5; m.gy = t[1] + 0.5; } m.px = m.py = -1; m.state = 'idle'; m.wait = rnd(0.4, 1); }
 function updMover(m, dt) {
   const d = m.def; m.t += dt; m.cheer = Math.max(0, m.cheer - dt); m.boost = Math.max(0, m.boost - dt); m.hop = Math.max(0, m.hop - dt); m.sq = Math.max(0, m.sq - dt); if (m.held) return;
   const speed = (m.type === 'jeep' ? 1.7 : m.type === 'heli' ? 2.2 : 0.5) * (m.boost > 0 ? 2.3 : 1);
@@ -1331,7 +1336,7 @@ function updMover(m, dt) {
     m.wait -= dt;
     if (m.wait <= 0) {
       if (d.air) { m.tx = rnd(0, N); m.ty = rnd(0, N); m.state = 'walk'; }
-      else { const cx = Math.floor(m.gx), cy = Math.floor(m.gy); const t = nextTile(m); if (t) { m.px = cx; m.py = cy; m.tx = t[0] + 0.5; m.ty = t[1] + 0.5; m.state = 'walk'; } else if (!passable(cx, cy)) settle(m); else m.wait = 1; }
+      else { const cx = Math.floor(m.gx), cy = Math.floor(m.gy); const t = nextTile(m); if (t) { m.px = cx; m.py = cy; m.tx = t[0] + 0.5; m.ty = t[1] + 0.5; m.state = 'walk'; } else if (!canGo(m)(cx, cy) && (m.type !== 'visitor' || nearestTile(cx, cy, walkway))) { const p0 = mpos(m); settleMover(m); if (m.type === 'visitor') { const p1 = mpos(m); if (Math.hypot(p1[0] - p0[0], p1[1] - p0[1]) > 4) { poof(p0[0], p0[1] - 20); m.hop = 0.45; } } } else m.wait = 1; }
     }
     if (m.type === 'visitor') { m.flashT -= dt; if (m.flashT <= 0) { m.flashT = rnd(4, 9); const p = mpos(m); if (dinos.some(o => o.stage !== 'egg' && Math.hypot(dpos(o)[0] - p[0], dpos(o)[1] - p[1]) < 240)) puff(p[0] + m.dir * 6, p[1] - 30, 'star', 1, { col: '#fff', v0: 0, v1: 1, s0: 12, s1: 14, t0: 0.25, t1: 0.3 }); } }
   } else {
@@ -1691,7 +1696,7 @@ function canJoin(pad, type) { return pad.kind === 'pad' && pad.style !== 'lagoon
 function moveGhost(d, px, py) {
   const type = d.spawn, def = DEF[type], w = s2w(px, py), g = w2g(w[0], w[1]); ghost = { type, wx: w[0], wy: w[1], show: py < trayTop + 6, n: 0, ok: true, join: null, gx: 0, gy: 0 };
   if (def.cat === 'dino' || def.cat === 'prop') {
-    const n = def.cat === 'dino' ? padSize(type) : FOOT[type][0]; ghost.n = n; ghost.gx = clamp(Math.round(g[0] - n / 2), 0, N - n); ghost.gy = clamp(Math.round(g[1] - n / 2), 0, N - n); ghost.ok = canPlace(ghost.gx, ghost.gy, n);
+    const n = def.cat === 'dino' ? padSize(type) : FOOT[type][0]; ghost.n = n; ghost.gx = clamp(Math.round(g[0] - n / 2), 0, N - n); ghost.gy = clamp(Math.round(g[1] - n / 2), 0, N - n); ghost.ok = canPlace(ghost.gx, ghost.gy, n) && (def.cat !== 'dino' || terrainOk(!!def.swim, ghost.gx, ghost.gy, n));
     if (def.cat === 'dino') { const tx = Math.floor(g[0]), ty = Math.floor(g[1]); if (inB(tx, ty) && occ[ti(tx, ty)]) { const o = objs.find(o => o.id === occ[ti(tx, ty)]); if (o && canJoin(o, type)) { ghost.join = o; ghost.ok = true; } } }
   }
 }
@@ -1705,9 +1710,11 @@ function dropNew(type, px, py) { const id0 = nid; dropNew0(type, px, py); if (ni
 function dropNew0(type, px, py) {
   if (!ghost || !type || py >= trayTop + 6) return; const def = DEF[type], g = w2g(ghost.wx, ghost.wy);
   if (def.cat === 'food') { mkFood(type, ghost.wx, ghost.wy, 0).sq = 0.25; sfx.pop(); return; }
-  if (def.cat === 'mover') { const m = mkMover(type, clamp(Math.floor(g[0]), 0, N - 1), clamp(Math.floor(g[1]), 0, N - 1)); settle(m); m.sq = 0.28; sfx.thud(); announce(def); return; }
+  if (def.cat === 'mover') { const m = mkMover(type, clamp(Math.floor(g[0]), 0, N - 1), clamp(Math.floor(g[1]), 0, N - 1)); settleMover(m); m.sq = 0.28; sfx.thud(); announce(def); return; }
   if (ghost.join) { const p = ghost.join, e = mkDino(type, p, 'egg', g[0] - p.gx, g[1] - p.gy); e.sq = 0.28; sfx.pop(); announce(def); return; }
-  let spot = ghost.ok ? [ghost.gx, ghost.gy] : freeSpot(ghost.n, g[0], g[1]);
+  const wet = def.cat === 'dino' ? !!def.swim : undefined;
+  let spot = ghost.ok ? [ghost.gx, ghost.gy] : freeSpot(ghost.n, g[0], g[1], 99, wet);
+  if (!spot && wet !== undefined) { terrainMsg(wet); return; }
   if (!spot) { noRoom(); return; }
   placeNew(type, spot[0], spot[1], false); announce(def);
 }
@@ -1720,7 +1727,7 @@ function moveDrag(id, px, py) {
   else if (d.mode === 'new') moveGhost(d, px, py);
   else if (d.mode === 'obj') {
     const g = w2g(w[0], w[1]); d.over = py > trayTop + 6;
-    if (d.o) { const o = d.o; o.gx = clamp(Math.round(g[0] - d.off[0]), 0, N - o.n); o.gy = clamp(Math.round(g[1] - d.off[1]), 0, N - o.n); o.bad = !canPlace(o.gx, o.gy, o.n); }
+    if (d.o) { const o = d.o; o.gx = clamp(Math.round(g[0] - d.off[0]), 0, N - o.n); o.gy = clamp(Math.round(g[1] - d.off[1]), 0, N - o.n); o.bad = !canPlace(o.gx, o.gy, o.n) || (o.kind === 'pad' && !terrainOk(o.style === 'lagoon', o.gx, o.gy, o.n)); }
     else { d.m.gx = clamp(g[0], -1, N + 1); d.m.gy = clamp(g[1], -1, N + 1); }
     setBin();
   }
@@ -1733,11 +1740,11 @@ function endDrag(id, px, py, cancelled) {
       const o = d.o; o.held = false;
       if (d.over && !cancelled) { o.held = true; removeObj(o, true); sfx.poof(); }
       else {
-        if (o.bad || cancelled) { o.gx = o.orig[0]; o.gy = o.orig[1]; if (!canPlace(o.gx, o.gy, o.n)) { const s = freeSpot(o.n, o.gx, o.gy); if (s) { o.gx = s[0]; o.gy = s[1]; } } if (!cancelled) sfx.boing(); }
+        if (o.bad || cancelled) { const wasTerrain = o.bad && o.kind === 'pad' && canPlace(o.gx, o.gy, o.n); o.gx = o.orig[0]; o.gy = o.orig[1]; if (!canPlace(o.gx, o.gy, o.n)) { const s = freeSpot(o.n, o.gx, o.gy, 99, o.kind === 'pad' ? o.style === 'lagoon' : undefined) || freeSpot(o.n, o.gx, o.gy); if (s) { o.gx = s[0]; o.gy = s[1]; } } if (!cancelled) { if (wasTerrain) terrainMsg(o.style === 'lagoon'); else sfx.boing(); } }
         else { sfx.thud(); const c = ocenter(o); dust(c[0], c[1] + o.n * 10); }
         o.bad = false; o.sq = 0.28; setOcc(o, true); dirty();
       }
-    } else { const m = d.m; m.held = false; if (d.over && !cancelled) { killMover(m, true); sfx.poof(); } else { settle(m); m.sq = 0.28; sfx.thud(); dirty(); } }
+    } else { const m = d.m; m.held = false; if (d.over && !cancelled) { killMover(m, true); sfx.poof(); } else { settleMover(m); m.sq = 0.28; sfx.thud(); dirty(); } }
   } else if (d.mode === 'new') { if (!cancelled) dropNew(d.spawn, px, py); ghost = null; }
   else if (!d.moved && !cancelled && d.mode !== 'paint' && d.mode !== 'pinch') { if (d.place) { dropNew(placing, px, py); ghost = null; } else if (d.spawn) { if (DEF[d.spawn].cat === 'food') spawnFromTray(d.spawn); else { setPlacing(d.spawn); sfx.pick(); } } else if (removing) removeHit(d.t); else if (picking) pickFighter(d.t); else if (d.t) tapHit(d.t); else if (py < trayTop) tapGround(px, py); }
   setBin();
@@ -1787,13 +1794,13 @@ function tapHit(t) {
     case 'gate': o.flare = 1; sfx.fanfare(); sparkle(b[0], b[1] - 120 * sc, 10); break;
     case 'tower': o.flare = 1; sfx.ding(); break;
     case 'dome': o.flare = 1; sfx.ding(); sparkle(b[0], b[1] - 90 * sc, 8); break;
-    case 'snack': o.flare = 1; sfx.ding(); if (movers.filter(m => m.type === 'visitor').length < 8) { const t2 = nearestTile(o.gx, o.gy, passable); if (t2) { const v = mkMover('visitor', t2[0], t2[1]); v.cheer = 1; v.hop = 0.45; } } break;
+    case 'snack': o.flare = 1; sfx.ding(); if (movers.filter(m => m.type === 'visitor').length < 8) { const t2 = nearestTile(o.gx, o.gy, walkway) || nearestTile(o.gx, o.gy, passable); if (t2) { const v = mkMover('visitor', t2[0], t2[1]); v.cheer = 1; v.hop = 0.45; } } break;
     default: sfx.boing();
   }
 }
 function spawnFromTray(type) {
   const def = DEF[type], c = viewCenterG(2.4);
-  if (def.cat === 'dino' || def.cat === 'prop') { const n = def.cat === 'dino' ? padSize(type) : FOOT[type][0], s = freeSpot(n, c[0], c[1]); if (!s) { noRoom(); return; } placeNew(type, s[0], s[1], true); announce(def); return; }
+  if (def.cat === 'dino' || def.cat === 'prop') { const n = def.cat === 'dino' ? padSize(type) : FOOT[type][0], wet = def.cat === 'dino' ? !!def.swim : undefined, s = freeSpot(n, c[0], c[1], 99, wet); if (!s) { if (wet !== undefined) terrainMsg(wet); else noRoom(); return; } placeNew(type, s[0], s[1], true); announce(def); return; }
   if (def.cat === 'mover') { const t = def.air ? [Math.floor(c[0]), Math.floor(c[1])] : (nearestTile(c[0], c[1], (x, y) => passable(x, y) && tiles[ti(x, y)] === 1) || nearestTile(c[0], c[1], passable)); if (!t) { noRoom(); return; } const m = mkMover(type, t[0], t[1]); m.hop = 0.45; if (def.air) m.alt = 420; sfx.pop(); announce(def); const p = mpos(m); ensureVisible(p[0], p[1]); return; }
   // food: toss it to somebody hungry
   const all = dinos.filter(d => d.stage !== 'egg' && !d.food && !d.pad.held && (d.def.diet === 'plant') === (type === 'leaves')), hung = all.filter(d => d.hungryIn <= 0), want = hung.length ? hung : all;
@@ -2913,7 +2920,7 @@ function load(d) {
     else if (FOOT[o.t] && ok(o.x, o.y, FOOT[o.t][0])) mkProp(o.t, o.x, o.y, 0);
   }
   if (typeof d.tiles === 'string' && srcN <= N && d.tiles.length === srcN * srcN) for (let y = 0; y < srcN; y++) for (let x = 0; x < srcN; x++) { const i = ti(x + off, y + off), c = d.tiles[y * srcN + x]; if (!occ[i]) tiles[i] = c === '1' ? 1 : c === '2' ? 2 : 0; }
-  for (const m of d.movers || []) if (MSC[m.t] && inB(m.x + off, m.y + off)) settle(mkMover(m.t, m.x + off, m.y + off, Array.isArray(m.c) ? m.c : undefined));
+  for (const m of d.movers || []) if (MSC[m.t] && inB(m.x + off, m.y + off)) settleMover(mkMover(m.t, m.x + off, m.y + off, Array.isArray(m.c) ? m.c : undefined));
   if (TABS[0].btn) selectTab(curTab);
 }
 const row = (y, x0, x1) => { let s = ''; for (let x = 0; x < N; x++) s += x >= x0 && x <= x1 ? '1' : '0'; return s; };
