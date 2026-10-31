@@ -165,6 +165,9 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 }
 #dig canvas{width:100%;height:100%;display:block;pointer-events:none}
 #dig:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+#chase{position:absolute;inset:0;z-index:6;background:#8fd3f2;touch-action:none}
+#chaseCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#chaseBar{justify-content:space-between;padding:0 calc(16px + env(safe-area-inset-left,0px))}
 #digsite{position:absolute;inset:0;z-index:6;background:#e5c58f;touch-action:none}
 #digCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .item.locked{background:#e3d6b6}
@@ -173,15 +176,15 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 .cbtn[hidden]{display:none}
 .cbtn.off{opacity:.5}
 .cbtn.on{background:var(--sun)}
-#careTop,#duelTop,#digTop{position:absolute;top:14px;left:50%;transform:translateX(-50%);box-sizing:border-box;max-width:calc(100% - var(--b)*2 - 64px);text-align:center;background:var(--paper);border:3px solid var(--ink);border-radius:28px;padding:6px 20px 8px;box-shadow:0 5px 0 rgba(27,42,38,.35);pointer-events:none}
-#careName,#duelName,#digName{display:block;font-weight:700;font-size:clamp(17px,3.6vw,36px);line-height:1.1;overflow-wrap:break-word;text-wrap:balance}
-#careNeeds,#duelSub,#digSub{display:block;font-weight:500;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em;opacity:.78}
-#careClose,#duelClose,#digClose{position:absolute;top:12px;right:16px;width:calc(var(--b)*.92);height:calc(var(--b)*.92);border-radius:50%;padding:0;background:var(--sun);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);display:grid;place-items:center}
-#careClose:active,#duelClose:active,#digClose:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
-#careClose svg,#duelClose svg,#digClose svg{width:52%;height:52%;display:block}
+#careTop,#duelTop,#digTop,#chaseTop{position:absolute;top:14px;left:50%;transform:translateX(-50%);box-sizing:border-box;max-width:calc(100% - var(--b)*2 - 64px);text-align:center;background:var(--paper);border:3px solid var(--ink);border-radius:28px;padding:6px 20px 8px;box-shadow:0 5px 0 rgba(27,42,38,.35);pointer-events:none}
+#careName,#duelName,#digName,#chaseName{display:block;font-weight:700;font-size:clamp(17px,3.6vw,36px);line-height:1.1;overflow-wrap:break-word;text-wrap:balance}
+#careNeeds,#duelSub,#digSub,#chaseSub{display:block;font-weight:500;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em;opacity:.78}
+#careClose,#duelClose,#digClose,#chaseClose{position:absolute;top:12px;right:16px;width:calc(var(--b)*.92);height:calc(var(--b)*.92);border-radius:50%;padding:0;background:var(--sun);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);display:grid;place-items:center}
+#careClose:active,#duelClose:active,#digClose:active,#chaseClose:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+#careClose svg,#duelClose svg,#digClose svg,#chaseClose svg{width:52%;height:52%;display:block}
 #careEnv{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(8px,2.2vw,22px);padding:0 12px;pointer-events:none}
 #careEnv .cbtn{flex:0 1 calc(var(--b)*1.05)}
-#careBar,#duelBar,#digBar{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(14px,4vw,44px);padding:0 16px;pointer-events:none}
+#careBar,#duelBar,#digBar,#chaseBar{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(14px,4vw,44px);padding:0 16px;pointer-events:none}
 .cbtn{pointer-events:auto;position:relative;flex:0 1 calc(var(--b)*1.25);min-width:0;aspect-ratio:1;border-radius:28px;background:var(--paper);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);padding:0}
 .cbtn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
 .cbtn canvas{width:100%;height:100%;display:block;pointer-events:none}
@@ -252,6 +255,15 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <button id="carePlay" class="cbtn" type="button" aria-label="Play" title="Play"><canvas></canvas></button>
       <button id="careWash" class="cbtn" type="button" aria-label="Wash" title="Wash"><canvas></canvas></button>
       <button id="careMed" class="cbtn" type="button" aria-label="Medicine" title="Medicine" hidden><canvas></canvas></button>
+    </div>
+  </div>
+  <div id="chase" hidden role="dialog" aria-label="Catch the dinosaur">
+    <canvas id="chaseCv" aria-label="A dinosaur running away along a trail with your jeep behind it. Hold to drive, tap the dinosaur or the net button to throw the net."></canvas>
+    <div id="chaseTop"><span id="chaseName"></span><span id="chaseSub" aria-live="polite"></span></div>
+    <button id="chaseClose" type="button" aria-label="Back to the island" title="Back to the island"><svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5l-7 7 7 7"/></svg></button>
+    <div id="chaseBar">
+      <button id="chaseGo" class="cbtn" type="button" aria-label="Drive" title="Hold to drive"><canvas></canvas></button>
+      <button id="chaseNet" class="cbtn" type="button" aria-label="Throw the net" title="Throw the net"><canvas></canvas></button>
     </div>
   </div>
   <div id="digsite" hidden role="dialog" aria-label="Dig for fossils">
@@ -1107,7 +1119,7 @@ function resize() {
   const it = trayEl.querySelector('.item'), bH = it ? it.offsetHeight : 96, rows = Math.max(1, Math.round((trayEl.clientHeight - 15) / (bH + 10))), vBot = Math.min(H - 60, trayTop + (rows - 1) * (bH + 10)); cy0 = vBot / 2 + 10;
   const old = zFit, zW = W / (N * TW + 200), zH = (vBot - 16) / (N * TH + 215), rW = W / (16 * TW + 200), rH = (vBot - 16) / (16 * TH + 215); zFit = Math.min(zW, zH);
   zRef = Math.max(Math.min(rW, rH), Math.min(rH * 0.85, rW * 1.7));   // the comfortable play zoom: about 16 tiles across
-  cam.z = old ? clamp(cam.z * zFit / old, zFit * 0.85, zMax()) : zRef; clampCam(); drawIcons(); if (care) sizeCare(); if (duel) sizeDuel(); if (dig) setupDig(dig.type, dig.found);
+  cam.z = old ? clamp(cam.z * zFit / old, zFit * 0.85, zMax()) : zRef; clampCam(); drawIcons(); if (care) sizeCare(); if (duel) sizeDuel(); if (dig) setupDig(dig.type, dig.found); if (chase) { chaseCv.width = Math.round(W * DPR); chaseCv.height = Math.round(H * DPR); }
   trayEl.classList.toggle('scrolly', trayEl.scrollWidth > trayEl.clientWidth + 2);
 }
 function ensureVisible(wx, wy) { const [sx, sy] = w2s(wx, wy); if (sx < 70 || sx > W - 70 || sy < 90 || sy > trayTop - 50) cam.go = { x: wx, y: wy }; }
@@ -1170,7 +1182,7 @@ function mkFood(type, x, y, drop) {
 }
 const stageK = s => s === 2 ? 1 : s === 1 ? 0.74 : 0.5;
 const dscale = e => DS * e.def.size * (e.def.swim ? 1 : e.gk);
-const dpos = e => g2w(e.pad.gx + e.u, e.pad.gy + e.v);
+const dpos = e => e.esc ? g2w(e.esc.x, e.esc.y) : g2w(e.pad.gx + e.u, e.pad.gy + e.v);
 const mpos = m => g2w(m.gx + m.off, m.gy - m.off);
 function mouthPos(e, which) { const sc = dscale(e), m = e.def[which], p = dpos(e); return [p[0] + e.dir * m[0] * sc, p[1] - (e.alt || 0) + m[1] * sc]; }
 function killFood(f, fx) { const i = foods.indexOf(f); if (i < 0) return; foods.splice(i, 1); f.gone = true; if (fx) poof(f.x, f.y - 10); }
@@ -1235,6 +1247,7 @@ function updDino(e, dt) {
   if (e.stage === 'egg') { if (!pad.held && e.drop <= 0) e.eggT += dt; return; }
   e.gk += (stageK(e.stage) - e.gk) * Math.min(1, dt * 5);
   e.blinkT -= dt; if (e.blinkT < -0.14) e.blinkT = rnd(1.5, 5);
+  if (e.esc) { updEscape(e, dt); return; }
   const wants = e.hurt || !homeOk(e) || e.hungryIn <= 0 || e.playIn <= 0 || e.dirtyIn <= 0;
   if (!wants) { e.needIn -= dt; if (e.needIn <= 0) pickNeed(e); } else if (e.hungryIn <= 0 && !e.food && !pad.held) e.hungryIn -= dt;
   if (e.bandT > 0) e.bandT -= dt;
@@ -1329,6 +1342,7 @@ function updMover(m, dt) {
   if (d.air) { m.alt += (150 - m.alt) * Math.min(1, dt * 2); m.tilt += ((m.state === 'walk' ? 0.1 : 0) - m.tilt) * Math.min(1, dt * 3); }
 }
 function update(dt) {
+  if (started) escapeTick(dt);
   for (let i = timers.length - 1; i >= 0; i--) { timers[i].t -= dt; if (timers[i].t <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   if (cam.go) { cam.x += (cam.go.x - cam.x) * Math.min(1, dt * 5); cam.y += (cam.go.y - cam.y) * Math.min(1, dt * 5); clampCam(); if (Math.hypot(cam.go.x - cam.x, cam.go.y - cam.y) < 3) cam.go = null; }
   for (const o of objs) {
@@ -1560,7 +1574,8 @@ function drawBubble(e, p) {
   circ(ctx, x, y, r); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(x - r * 0.26, y + r * 0.72); ctx.lineTo(x + e.dir * r * 0.1, y + r * 1.36); ctx.lineTo(x + r * 0.26, y + r * 0.72); ctx.closePath(); ctx.fill();
   const nd = needsOf(e);   // show the most pressing thing it wants: medicine, food, then play, then a wash
-  if (nd.hurt) { ctx.save(); ctx.translate(x, y + r * 0.05); drawMed(ctx, r * 0.56); ctx.restore(); }
+  if (e.esc) { ctx.fillStyle = '#e2483d'; ctx.font = '900 ' + Math.round(r * 1.5) + 'px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', x, y + r * 0.08); }
+  else if (nd.hurt) { ctx.save(); ctx.translate(x, y + r * 0.05); drawMed(ctx, r * 0.56); ctx.restore(); }
   else if (nd.home) { ctx.save(); ctx.translate(x, y + r * 0.06); drawPaddock(ctx, r * 0.74, prefOf(e), false); ctx.restore(); }
   else if (nd.hungry) { const fd = DEF[foodFor(d)], s = r / 37; ctx.save(); ctx.translate(x - (fd.box[0] + fd.box[2]) / 2 * s, y - (fd.box[1] + fd.box[3]) / 2 * s); ctx.scale(s, s); fd.draw(ctx, { time, ow: clamp(2 / (s * cam.z), 2, 8) }); ctx.restore(); }
   else { ctx.save(); ctx.translate(x, y); if (nd.bored) drawBall(ctx, r * 0.62); else drawSoap(ctx, r * 0.6); ctx.restore(); }
@@ -1760,7 +1775,7 @@ function tapGround(px, py) {
   flowers.push({ x: w[0], y: w[1], t: 0, col: pick(['#f7a8c4', '#fff6dc', '#c9a7f0', '#ff9d5c']) }); if (flowers.length > 40) flowers.shift(); sfx.plip();
 }
 function tapHit(t) {
-  if (t.kind === 'dino') { const e = t.ref; openCare(e); return; }
+  if (t.kind === 'dino') { const e = t.ref; if (e.esc) openChase(e); else openCare(e); return; }
   if (t.kind === 'mover') { const m = t.ref; m.sq = 0.28; if (m.type === 'jeep') { sfx.honk(); m.boost = 3; m.hop = 0.45; m.wait = 0; } else if (m.type === 'heli') { sfx.heli(); m.boost = 3; m.wait = 0; } else { sfx.yay(); m.cheer = 1.2; m.hop = 0.45; } return; }
   const o = t.ref;
   if (o.kind === 'pad') { if (o.style === 'lagoon' && o.dinos[0]) openCare(o.dinos[0]); else { sfx.plip(); for (const d of o.dinos) if (d.stage !== 'egg') d.hop = 0.45; } return; }
@@ -1906,7 +1921,7 @@ function sizeCare() {
   fitIcon(feedBtn.firstElementChild, [foodFor(care.e.def)], { fill: 0.78 }); paintIcon(playBtn.firstElementChild, drawBall); paintIcon(washBtn.firstElementChild, drawSoap); if (!medBtn.hidden) paintIcon(medBtn.firstElementChild, drawMed); paintHome();
 }
 function openCare(e) {
-  if (care) return; ac(); setRemoving(false); if (paint) setPaint(paint); const egg = e.stage === 'egg';
+  if (care || e.esc) return; ac(); setRemoving(false); if (paint) setPaint(paint); const egg = e.stage === 'egg';
   care = { e, t: 0, jaw: 0, nod: 0, pitch: 0, hop: 0, spin: 0, sq: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: 0, act: null, actT: 0, chompT: 0, scrub: 0, shake: 0, food: null, ball: null, parts: [], ptr: null, heartT: 2, greet: egg ? 0 : 0.3, rock: 0, eggBox: null, barTop: H - 160,
     mud: (() => { const R = mulberry(e.id * 97 + 3), d = e.def, b = d.swim ? [-95, -20, 95, 20] : d.fly ? [-34, -30, 44, 12] : [d.box[0] * 0.45, d.box[1] * 0.74, d.box[2] * 0.62, -14]; return Array.from({ length: 11 }, () => [lerp(b[0], b[2], R()), lerp(b[1], b[3], R()), 9 + R() * 14, R() * TAU]); })() };
   careEl.hidden = false; careEl.classList.toggle('egg', egg); sizeCare(); careNameEl.textContent = e.def.name + (egg ? ' egg' : ''); careNeedsEl.textContent = '';
@@ -2182,6 +2197,7 @@ function pickFighter(t) {
   const e = fighterOf(t);
   if (!e) { sfx.boing(); banner('Tap a dinosaur', 'Tap the orange button to stop', 2200); return; }
   if (e.stage === 'egg') { sfx.boing(); banner('Eggs cannot battle yet', 'Tap a dinosaur that has hatched', 2600); return; }
+  if (e.esc) { sfx.boing(); banner(e.def.name + ' escaped!', 'Catch it first', 2600); return; }
   if (e.hurt) { sfx.boing(); banner(e.def.name + ' needs medicine', 'Tap it and give it medicine first', 3200); return; }
   if (picking.includes(e)) { picking.length = 0; sfx.pick(); banner('Tap a dinosaur to battle', '', 2200); return; }   // tapping the chosen one again lets it go
   if (picking.length && !!picking[0].def.swim !== !!e.def.swim) { sfx.boing(); banner('Not that one', picking[0].def.swim ? 'Pick a friend that swims' : 'Pick a friend that walks or flies', 3000); return; }
@@ -2205,6 +2221,7 @@ function mkFighter(e, side) {
   return { e, d, side, box: d.swim ? [-135, -45, 130, 55] : d.box, hp: HPMAX, hpShow: HPMAX, off: 0, kx: 0, hop: 0, sq: 0, tilt: 0, lean: 0, leanT: 0, flip: 1, reach: 0, reachT: 0, swipe: 0, swipeT: 0, kick: 0, kickT: 0, hitNod: 0, recoil: 0, pace: 0, paceT: 0, kv: 0, kxT: 0, vel: 0, acc: 0, px: null, tail: 0, tailT: 0, wob: 0, shake: 0, dizzy: 0, jaw: 0, nod: 0, pitch: 0, jawT: 0, nodT: 0, pitchT: 0, amp: 0, ampT: 0, walk: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: rnd(TAU), asleep: 0, s: 1, cx: 0, oy: 0, fx: 0, fy: 0, mid: 0, air: 0 };
 }
 function openDuel(a, b) {
+  if (a.esc || b.esc) return;
   if (duel || care || a === b || a.gone || b.gone || a.pad.gone || b.pad.gone) return; ac(); setRemoving(false); setPicking(false); if (paint) setPaint(paint);
   duel = { t: 0, f: [mkFighter(a, -1), mkFighter(b, 1)], kit: [kitOf(a.def), kitOf(b.def)], mv: null, end: null, aiT: 2.6, parts: [], gy: 0, barTop: H - 160, moved: false, greeted: false, shakeT: 0, a, b };
   duelEl.hidden = false; duelNameEl.textContent = a.def.name + ' vs ' + b.def.name; duelSubEl.textContent = 'Tap a big button!'; setDuelUI(false); sizeDuel(); sfx.fanfare();
@@ -2660,6 +2677,147 @@ digPlaceBtn.addEventListener('click', () => { if (!dig) return; const t = dig.ty
 document.getElementById('digClose').addEventListener('click', closeDig);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeDig(); });
 
+/* ============ escapes: now and then a dinosaur gets out, and you chase it in the jeep and catch it with a net ============ */
+const chaseEl = document.getElementById('chase'), chaseCv = document.getElementById('chaseCv'), chx = chaseCv.getContext('2d');
+const chaseNameEl = document.getElementById('chaseName'), chaseSubEl = document.getElementById('chaseSub'), chaseGoBtn = document.getElementById('chaseGo'), chaseNetBtn = document.getElementById('chaseNet');
+let chase = null, escT = rnd(240, 420); const CHA = { ...A0 };
+sfx.alarm = () => { for (let i = 0; i < 3; i++) { tone(660, 990, 0.22, 'square', 0.1, i * 0.46); tone(990, 660, 0.22, 'square', 0.1, i * 0.46 + 0.23); } };
+function pickEscTarget(e) {
+  const E = e.esc; for (let k = 0; k < 30; k++) { const tx = clamp(E.x + rnd(-7, 7), 1, N - 2), ty = clamp(E.y + rnd(-7, 7), 1, N - 2), i = ti(Math.floor(tx), Math.floor(ty)); if (tiles[i] !== 2 && !occ[i]) { E.tx = tx; E.ty = ty; return; } }
+  E.tx = E.x; E.ty = E.y;
+}
+function startEscape(e) {
+  if (!e || e.esc || e.stage === 'egg' || e.def.swim) return;
+  e.esc = { x: e.pad.gx + e.u, y: e.pad.gy + e.v, tx: 0, ty: 0, pause: 0.4 }; pickEscTarget(e); e.hop = 0.45; e.state = 'idle'; e.bub = 0;
+  const p = dpos(e); dust(p[0], p[1]); sfx.alarm(); banner('Oh no! ' + e.def.name + ' escaped!', 'Tap it to catch it', 4500); say('Oh no! The ' + e.def.name + ' escaped!'); ensureVisible(p[0], p[1]);
+}
+function escapeTick(dt) {
+  if (care || duel || dig || chase || dinos.some(d => d.esc)) return;
+  escT -= dt; if (escT > 0) return; escT = rnd(300, 540);   // somewhere between 5 and 9 minutes of play
+  const can = dinos.filter(d => d.stage !== 'egg' && !d.def.swim && !d.hurt && !d.pad.held && !d.food && d.drop <= 0); if (can.length) startEscape(pick(can));
+}
+function updEscape(e, dt) {   // roams the island outside the fences until he catches it
+  const E = e.esc, sp = e.def, sc = dscale(e), stride = (sp.near[0] && sp.near[0].stride) || 20; e.bub += (1 - e.bub) * Math.min(1, dt * 8);
+  let ampT = 0, jawT = 0;
+  if (e.roarT > 0) { e.roarT -= dt; jawT = 1; }
+  if (E.pause > 0) { E.pause -= dt; if (E.pause <= 0 && Math.random() < 0.35) roarNow(e); }
+  else {
+    const a = g2w(E.x, E.y), b = g2w(E.tx, E.ty), dx = b[0] - a[0], dy = b[1] - a[1], dist = Math.hypot(dx, dy), step = sp.speed * 1.15 * dt;
+    if (dist <= step + 1) { E.x = E.tx; E.y = E.ty; E.pause = rnd(0.5, 1.8); pickEscTarget(e); }
+    else { const g = w2g(a[0] + dx / dist * step, a[1] + dy / dist * step); E.x = g[0]; E.y = g[1]; if (Math.abs(dx) > 1) e.dir = dx > 0 ? 1 : -1; ampT = 1; e.walk += step / sc * Math.PI / (2 * stride); if (Math.random() < dt * 3) { const p = dpos(e); dust(p[0], p[1]); } }
+  }
+  if (sp.fly) { e.alt += (115 - e.alt) * Math.min(1, dt * 2.5); e.flap += dt * 7.5; }
+  e.amp += (ampT - e.amp) * Math.min(1, dt * 8); e.jaw += (jawT - e.jaw) * Math.min(1, dt * 14); e.nod += (0 - e.nod) * Math.min(1, dt * 6); e.pitch += (0 - e.pitch) * Math.min(1, dt * 6);
+}
+
+/* the chase: drive the jeep along a trail after the dinosaur, then throw the net */
+function drawNetIcon(c, r) {
+  c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = OUT;
+  c.lineWidth = r * 0.22; c.beginPath(); c.moveTo(r * 0.35, r * 0.35); c.lineTo(r * 1.1, r * 1.1); c.stroke(); c.strokeStyle = '#a8713f'; c.lineWidth = r * 0.12; c.stroke();
+  drawNet(c, -r * 0.2, -r * 0.2, r * 0.75, 1);
+}
+function drawNet(c, x, y, r, a) {   // a hoop with criss-cross mesh
+  c.save(); c.translate(x, y); c.globalAlpha *= a; circ(c, 0, 0, r); c.save(); c.clip(); c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = Math.max(1.5, r * 0.06);
+  for (let k = -r; k <= r; k += r * 0.32) { c.beginPath(); c.moveTo(k - r, -r); c.lineTo(k + r, r); c.moveTo(k + r, -r); c.lineTo(k - r, r); c.stroke(); } c.restore();
+  c.strokeStyle = OUT; c.lineWidth = Math.max(3, r * 0.16); circ(c, 0, 0, r); c.stroke(); c.strokeStyle = '#ffc93c'; c.lineWidth = Math.max(1.6, r * 0.08); c.stroke(); c.restore();
+}
+function drawGoIcon(c, r) {
+  c.save(); c.translate(-r * 0.15, r * 0.3); const s = r * 1.5 / 128; c.scale(s, s); drawThing(c, 'jeep', { ...A0, time: 0, ow: clamp(2.2 / s, 2, 8), moving: false, cheer: 0, flare: 0, e: null }); c.restore();
+  c.lineJoin = 'round'; c.fillStyle = '#5cc25a'; c.strokeStyle = OUT; c.lineWidth = Math.max(2, r * 0.08);
+  c.beginPath(); c.moveTo(r * 0.55, -r * 0.95); c.lineTo(r * 1.15, -r * 0.6); c.lineTo(r * 0.55, -r * 0.25); c.lineTo(r * 0.55, -r * 0.45); c.lineTo(r * 0.0, -r * 0.45); c.lineTo(r * 0.0, -r * 0.75); c.lineTo(r * 0.55, -r * 0.75); c.closePath(); c.fill(); c.stroke();
+}
+function openChase(e) {
+  if (chase || care || duel || dig || !e.esc) return; ac(); setRemoving(false); setPicking(false); if (paint) setPaint(paint);
+  chase = { e, d: e.def, t: 0, jx: 0, jv: 0, dx: W * 0.62, dv: W * 0.2, cam: -Math.max(W * 0.22, 80 * clamp(Math.min(H * 0.2 / 78, W * 0.3 / 128), 0.6, 2.6)), gas: false, gasId: null, net: null, caught: false, ct: 0, parts: [], restT: rnd(2.5, 4), rest: 0, spurtT: 0, walk: 0, flap: 0, jaw: 0, roarT: 0, missT: 0, wheel: 0 };
+  chaseEl.hidden = false; chaseCv.width = Math.round(W * DPR); chaseCv.height = Math.round(H * DPR);
+  chaseNameEl.textContent = 'Catch the ' + e.def.name + '!'; chaseSubEl.textContent = 'Hold the jeep button to drive, then tap the net';
+  paintIcon(chaseGoBtn.firstElementChild, drawGoIcon); paintIcon(chaseNetBtn.firstElementChild, drawNetIcon); sfx.honk(); say('Catch the ' + e.def.name);
+}
+function closeChase() { if (!chase) return; chase = null; chaseEl.hidden = true; sfx.pick(); }
+function chaseGeo() {
+  const C = chase, d = C.d, gy = Math.min(H * 0.72, H - clamp(H * 0.2, 110, 190)), box = d.box;
+  const ds = Math.min(H * 0.3 / (box[3] - box[1]), W * 0.3 / (box[2] - box[0])) * (0.75 + 0.25 * Math.min(1, d.size)), js = clamp(Math.min(H * 0.2 / 78, W * 0.3 / 128), 0.6, 2.6);
+  return { gy, ds, js, air: d.fly ? H * 0.16 : 0, box, mid: (box[0] + box[2]) / 2 };
+}
+function throwNet() {
+  const C = chase; if (!C || C.net || C.caught) return; ac(); const G = chaseGeo(), jFront = C.jx + 60 * G.js, range = W * 0.42, gap = C.dx - jFront;
+  const tx = gap <= range ? C.dx + C.dv * 0.5 : jFront + range, ty = G.gy - G.air - (G.box[3] - G.box[1]) * G.ds * 0.45;
+  C.net = { t: 0, x0: jFront - 20 * G.js, y0: G.gy - 70 * G.js, tx, ty, x: 0, y: 0, hitOk: gap <= range }; sfx.boing(); noise(0.2, 2000, 600, 0.15, 'bandpass');
+}
+function updateChase(dt) {
+  const C = chase, G = chaseGeo(), W1 = W; C.t += dt; C.missT = Math.max(0, C.missT - dt);
+  if (!C.caught) {   // the jeep: speeds up while the button is held, rolls to a stop when let go
+    if (C.gas) C.jv = Math.min(W1 * 0.5, C.jv + W1 * 0.9 * dt); else C.jv = Math.max(0, C.jv - W1 * 0.7 * dt);
+    // the dinosaur: runs, takes little rests to look back and roar, sprints when the jeep gets close, waits if it gets too far ahead
+    const gap = C.dx - C.jx; let target = W1 * 0.3 + Math.sin(C.t * 0.9) * W1 * 0.04;
+    C.restT -= dt; if (C.restT <= 0 && C.rest <= 0) { C.rest = 1.3; C.restT = rnd(3, 5); C.roarT = C.d.voice.d; roarSound(C.d, C.e.stage === 0); }
+    if (C.rest > 0) { C.rest -= dt; target = W1 * 0.06; }
+    if (gap < W1 * 0.24 && C.spurtT <= 0 && C.rest <= 0) C.spurtT = 0.9; if (C.spurtT > 0) { C.spurtT -= dt; target = W1 * 0.4; }
+    if (gap > W1 * 0.8) target = W1 * 0.15;
+    C.dv += (target - C.dv) * Math.min(1, dt * 3);
+    C.dx += C.dv * dt; C.jx += C.jv * dt; const minGap = 60 * G.js + (G.mid - G.box[0]) * G.ds * 0.55; if (C.jx > C.dx - minGap) { C.jx = C.dx - minGap; C.jv = Math.min(C.jv, C.dv); }
+  } else { C.ct += dt; C.jv = Math.max(0, C.jv - W1 * 1.4 * dt); C.dv = Math.max(0, C.dv - W1 * 2 * dt); C.jx += C.jv * dt; C.dx += C.dv * dt; if (C.ct > 2.6) { finishChase(); return; } }
+  C.cam += (Math.max(C.jx - Math.max(W1 * 0.22, 80 * G.js), C.dx - W1 * 0.8) - C.cam) * Math.min(1, dt * 5);
+  const stride = (C.d.near[0] && C.d.near[0].stride) || 20; C.walk += C.dv * dt / G.ds * Math.PI / (2 * stride); C.flap += dt * 8; C.wheel += C.jv * dt;
+  if (C.roarT > 0) C.roarT -= dt; C.jaw += ((C.roarT > 0 || C.caught ? 1 : 0.15) - C.jaw) * Math.min(1, dt * 12);
+  if (C.jv > W1 * 0.1 && Math.random() < dt * 20) puff(C.jx - 40 * G.js, G.gy - 4, 'circle', 1, { into: C.parts, col: 'rgba(214,196,150,.85)', an: Math.PI, spread: 0.8, v0: 40, v1: 120, s0: 6, s1: 12, t0: 0.4, t1: 0.8, grow: 1.4 });
+  if (!G.air && C.dv > W1 * 0.1 && Math.random() < dt * 10) puff(C.dx, G.gy - 2, 'circle', 1, { into: C.parts, col: 'rgba(214,196,150,.7)', an: Math.PI, spread: 1.4, v0: 20, v1: 80, s0: 4, s1: 9, t0: 0.3, t1: 0.6, grow: 1.2 });
+  if (C.net) {   // the net flies in an arc
+    const M = C.net; M.t += dt / 0.5; const k = clamp(M.t, 0, 1); M.x = lerp(M.x0, M.tx, k) - C.cam; M.y = lerp(M.y0, M.ty, k) - Math.sin(Math.PI * k) * H * 0.18; M.wx = lerp(M.x0, M.tx, k);
+    if (k >= 1 && !M.done) {
+      M.done = true; const hw = (G.box[2] - G.box[0]) * G.ds * 0.6;
+      if (M.hitOk && Math.abs(M.tx - C.dx) < hw + 30) { C.caught = true; C.ct = 0; sfx.fanfare(); chaseNameEl.textContent = 'You caught it!'; chaseSubEl.textContent = C.d.name + ' is going home'; say('You caught it!');
+        puff(C.dx - C.cam, M.ty, 'star', 26, { into: C.parts, cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 160, v1: 480, s0: 10, s1: 20, t0: 0.6, t1: 1.2 }); }
+      else { C.missT = 1.6; sfx.boing(); chaseSubEl.textContent = 'So close! Drive nearer, then throw the net'; M.miss = 0.8; }
+    }
+    if (M.done && !C.caught) { M.miss -= dt; if (M.miss <= 0) C.net = null; }
+  }
+  for (let i = C.parts.length - 1; i >= 0; i--) { const p = C.parts[i]; p.life += dt; if (p.life >= p.max) { C.parts.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+  const near = !C.caught && !C.net && C.dx - (C.jx + 60 * G.js) <= W1 * 0.42; chaseNetBtn.classList.toggle('need', near); chaseGoBtn.classList.toggle('need', !C.caught && !C.gas && C.t < 6 && C.jv < 10);
+}
+function finishChase() {
+  const e = chase.e; closeChase(); e.esc = null; e.hop = 0.45; e.bub = 0; e.state = 'idle'; e.wait = 1; dirty();
+  const p = dpos(e); sparkle(p[0], p[1] - 60 * dscale(e), 16); hearts(p[0], p[1] - 80 * dscale(e), 4); sfx.grow(); banner(e.def.name + ' is back home', 'Great driving!', 2800); ensureVisible(p[0], p[1]);
+}
+function renderChase() {
+  const C = chase, G = chaseGeo(), x = chx, cam = C.cam; x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  let g = x.createLinearGradient(0, 0, 0, G.gy); g.addColorStop(0, '#74c8ef'); g.addColorStop(1, '#e2f5e4'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = '#fff1a8'; circ(x, W * 0.82, H * 0.16, Math.min(W, H) * 0.06); x.fill();
+  const layer = (par, col, base, amp, wl) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, G.gy); for (let px = 0; px <= W + 20; px += 20) { const wx = px + cam * par; x.lineTo(px, G.gy - base - amp * (0.55 + 0.45 * Math.sin(wx / wl) * Math.sin(wx / (wl * 2.3) + 1))); } x.lineTo(W, G.gy); x.closePath(); x.fill(); };
+  layer(0.15, '#a9c6cf', H * 0.16, H * 0.12, 160); layer(0.3, '#86aaa6', H * 0.08, H * 0.08, 110);
+  // trees going by
+  const tp = 0.6, spc = Math.max(220, W * 0.3), first = Math.floor(cam * tp / spc) - 1;
+  for (let i = first; i < first + W / spc + 3; i++) { const R = mulberry(i * 7 + 3), px = i * spc + R() * spc * 0.5 - cam * tp, type = R() < 0.5 ? 'palm' : 'pine', s = (0.55 + R() * 0.3) * H / 520; x.save(); x.translate(px, G.gy - H * 0.035); x.scale(s, s); drawThing(x, type, { ...A0, time: C.t, ow: clamp(2.5 / s, 2, 8), shake: 0, flare: 0, cheer: 0, moving: false, e: null }); x.restore(); }
+  g = x.createLinearGradient(0, G.gy - 10, 0, H); g.addColorStop(0, '#8ec45e'); g.addColorStop(1, '#5d9440'); x.fillStyle = g; x.fillRect(0, G.gy - H * 0.04, W, H);
+  x.fillStyle = '#d9c08a'; x.fillRect(0, G.gy - H * 0.012, W, H * 0.06); x.fillStyle = 'rgba(160,125,70,.35)'; for (let i = Math.floor(cam / 90) - 1; i < cam / 90 + W / 90 + 2; i++) { const px = i * 90 - cam; x.fillRect(px, G.gy + H * 0.012, 34, 4); }
+  x.strokeStyle = 'rgba(30,90,40,.55)'; x.lineWidth = 3; x.lineCap = 'round'; x.beginPath(); for (let i = Math.floor(cam / 46) - 1; i < cam / 46 + W / 46 + 2; i++) { const R = mulberry(i * 13 + 5), px = i * 46 - cam + R() * 30, py = G.gy + H * 0.07 + R() * (H - G.gy) * 0.8, k = 7; x.moveTo(px - k, py - k * 1.2); x.lineTo(px, py); x.lineTo(px + k, py - k * 1.3); } x.stroke();
+  // dinosaur
+  const dX = C.dx - cam, hop = !G.air && C.dv > W * 0.05 ? Math.abs(Math.sin(C.walk)) * 6 : 0, dY = G.gy - G.air - hop + (G.air ? Math.sin(C.t * 3) * 8 : 0);
+  if (!G.air) { const w = (G.box[2] - G.box[0]) * G.ds; x.drawImage(shadowImg, dX - w * 0.55, G.gy - w * 0.12, w * 1.1, w * 0.28); }
+  x.save(); x.translate(dX, dY); if (C.caught) x.rotate(Math.sin(C.t * 22) * 0.04); x.scale(G.ds, G.ds); x.translate(-G.mid, 0); if (C.d.fly) x.translate(0, -16);
+  Object.assign(CHA, { time: C.t + C.e.seed, walk: C.walk, amp: C.caught ? 0 : clamp(C.dv / (W * 0.25), 0, 1), jaw: C.jaw, nod: C.caught ? 0.2 : -0.05, pitch: 0, held: false, flap: C.flap, blink: false, lx: -0.8, ly: 0, sad: C.caught, headK: 1 + (1 - C.e.gk) * 0.6, eyeK: 1 + (1 - C.e.gk) * 0.5, ow: clamp(4 / G.ds, 1.5, 9), tex: true });
+  drawDino(x, C.d, CHA); x.restore();
+  // jeep with a ranger
+  const jX = C.jx - cam; x.save(); x.translate(jX, G.gy + 2 - (C.jv > 20 ? Math.abs(Math.sin(C.wheel / 30)) * 2 : 0)); x.scale(G.js, G.js); drawThing(x, 'jeep', { ...A0, time: C.t, ow: clamp(3 / G.js, 2, 8), moving: C.jv > 20, cheer: 0, flare: 0, e: null }); x.restore();
+  // net
+  if (C.net && !C.caught) { const M = C.net, k = clamp(M.t, 0, 1), r = lerp(14, 48, k) * G.js; x.save(); x.translate(M.x, M.y); x.scale(1, M.done ? 0.35 : 1); drawNet(x, 0, 0, r, M.done ? clamp(M.miss / 0.8, 0, 1) : 1); x.restore(); }
+  if (C.caught) { const r = (G.box[3] - G.box[1]) * G.ds * 0.5; drawNet(x, dX, dY - r * 0.95, r * 1.05, 0.85); }
+  for (const p of C.parts) drawPart({ ...p, x: p.x - (p.kind === 'star' ? 0 : cam) }, x);
+}
+chaseCv.addEventListener('pointerdown', ev => {
+  const C = chase; if (!C) return; ac(); ev.preventDefault(); const [px, py] = local(ev), G = chaseGeo(), dX = C.dx - C.cam, hw = (G.box[2] - G.box[0]) * G.ds * 0.6, top = G.gy - G.air + G.box[1] * G.ds;
+  if (Math.abs(px - dX) < hw + 30 && py > top - 30 && py < G.gy - G.air + 40) { throwNet(); return; }   // tap the dinosaur to throw the net
+  C.gas = true; C.gasId = ev.pointerId; try { chaseCv.setPointerCapture(ev.pointerId); } catch (e) {}   // hold anywhere else to drive
+});
+const chaseUp = ev => { if (chase && chase.gasId === ev.pointerId) { chase.gas = false; chase.gasId = null; } };
+chaseCv.addEventListener('pointerup', chaseUp); chaseCv.addEventListener('pointercancel', chaseUp);
+chaseGoBtn.addEventListener('pointerdown', ev => { if (!chase) return; ac(); ev.preventDefault(); chase.gas = true; chase.gasId = 'btn'; try { chaseGoBtn.setPointerCapture(ev.pointerId); } catch (e) {} });
+for (const t of ['pointerup', 'pointercancel', 'pointerleave']) chaseGoBtn.addEventListener(t, () => { if (chase && chase.gasId === 'btn') { chase.gas = false; chase.gasId = null; } });
+chaseGoBtn.addEventListener('contextmenu', ev => ev.preventDefault());
+chaseNetBtn.addEventListener('click', () => throwNet());
+document.getElementById('chaseClose').addEventListener('click', closeChase);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeChase(); });
+
 /* ============ saving ============ */
 const KEY = 'cretaceous-creatures-v2';
 // Two copies are kept: one in this browser (instant, works offline) and one in the owner's Claude account,
@@ -2688,7 +2846,7 @@ async function cloudSave() {
   if (cloudAgain) { cloudAgain = false; if (cloud) cloudT = 1.5; }
   return ok;
 }
-function adopt(d) { if (care) closeCare(); if (duel) closeDuel(); if (dig) closeDig(); setPicking(false); load(JSON.parse(JSON.stringify(d))); if (typeof d.snd === 'boolean' && d.snd !== soundOn) setSound(d.snd); stateTs = d.ts || Date.now(); settle(); save(); }
+function adopt(d) { if (care) closeCare(); if (duel) closeDuel(); if (dig) closeDig(); if (chase) closeChase(); setPicking(false); load(JSON.parse(JSON.stringify(d))); if (typeof d.snd === 'boolean' && d.snd !== soundOn) setSound(d.snd); stateTs = d.ts || Date.now(); settle(); save(); }
 async function initCloud() {
   try {
     if (!window.claude || !window.claude.use) return;
@@ -2716,7 +2874,7 @@ savBtn.addEventListener('click', async () => {
 const bkEl = document.getElementById('bk'), bkT = document.getElementById('bkT'), bkSub = document.getElementById('bkSub'), bkMain = document.getElementById('bkMain'), bkAsk = document.getElementById('bkAsk'), bkFile = document.getElementById('bkFile');
 let bkHeld = false, bkTimer = 0, bkPending = null;
 const bkIntro = () => { bkT.textContent = 'Back up the island'; bkSub.textContent = 'Saves the island, every dinosaur and the fossils found so far to a file. Keep it in iCloud Drive or email it to yourself. Restore puts it back on this or any other device.'; bkMain.hidden = false; bkAsk.hidden = true; bkPending = null; };
-function openBackup() { if (care) closeCare(); if (duel) closeDuel(); if (dig) closeDig(); setPicking(false); bkIntro(); bkEl.hidden = false; sfx.pick(); }
+function openBackup() { if (care) closeCare(); if (duel) closeDuel(); if (dig) closeDig(); if (chase) closeChase(); setPicking(false); bkIntro(); bkEl.hidden = false; sfx.pick(); }
 savBtn.addEventListener('pointerdown', () => { clearTimeout(bkTimer); bkHeld = false; bkTimer = setTimeout(() => { bkHeld = true; openBackup(); }, 1100); });
 for (const t of ['pointerup', 'pointerleave', 'pointercancel']) savBtn.addEventListener(t, () => clearTimeout(bkTimer));
 savBtn.addEventListener('contextmenu', ev => ev.preventDefault());
@@ -2783,7 +2941,7 @@ function start(data) {
   const frame = ts => {
     const raw = ts - last, dt = Math.min(0.05, Math.max(0, raw / 1000)); last = ts; time += dt;
     if (raw > 0 && raw < 250) { ema = ema * 0.95 + raw * 0.05; qT += raw; if (qT > 2500) { qT = 0; if (ema > 30 && Q < 2) { Q++; ema = 17; qT = -1500; resize(); } } }
-    update(dt); if (dig) { updateDig(dt); if (dig) renderDig(); } else if (duel) { updateDuel(dt); if (duel) renderDuel(); } else if (care) { updateCare(dt); renderCare(); } else { render(); if (picking && picking.length) drawPickRing(); } requestAnimationFrame(frame);
+    update(dt); if (chase) { updateChase(dt); if (chase) renderChase(); } else if (dig) { updateDig(dt); if (dig) renderDig(); } else if (duel) { updateDuel(dt); if (duel) renderDuel(); } else if (care) { updateCare(dt); renderCare(); } else { render(); if (picking && picking.length) drawPickRing(); } requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(app); else window.addEventListener('resize', resize);
@@ -2791,7 +2949,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
