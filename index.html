@@ -360,7 +360,7 @@ function pose(sp, a) {
   const P = (x, y) => pitch ? rot(x, y, hipx, hipy, pitch) : [x, y];
   const pts = sp.spine.map((p, i) => {
     let x = p[0], y = p[1] + bob;
-    if (i < tailN) { const k = (tailN - i) / tailN; y += Math.sin(a.time * 2.4 + i * 1.1) * 6 * k * (a.held ? 2.2 : 1) - a.jaw * 9 * k; }
+    if (i < tailN) { const k = (tailN - i) / tailN; y += Math.sin(a.time * 2.4 + i * 1.1) * 6 * k * (a.held ? 2.2 : 1) - a.jaw * 9 * k + (a.tail || 0) * 18 * k * k; }
     if (i > ni && a.nod) { const r = rot(x, y, pvx, pvy, a.nod * (i - ni) / (sN - 1 - ni)); x = r[0]; y = r[1]; }
     if (i > ni && rch) x += rch * (i - ni) / (sN - 1 - ni);
     const q = P(x, y); return [q[0], q[1], p[2]];
@@ -2093,7 +2093,7 @@ function drawPickRing() {
 /* the arena */
 function mkFighter(e, side) {
   const d = e.def;
-  return { e, d, side, box: d.swim ? [-135, -45, 130, 55] : d.box, hp: HPMAX, hpShow: HPMAX, off: 0, kx: 0, hop: 0, sq: 0, tilt: 0, lean: 0, leanT: 0, flip: 1, reach: 0, reachT: 0, swipe: 0, swipeT: 0, kick: 0, kickT: 0, hitNod: 0, recoil: 0, pace: 0, paceT: 0, wob: 0, shake: 0, dizzy: 0, jaw: 0, nod: 0, pitch: 0, jawT: 0, nodT: 0, pitchT: 0, amp: 0, ampT: 0, walk: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: rnd(TAU), asleep: 0, s: 1, cx: 0, oy: 0, fx: 0, fy: 0, mid: 0, air: 0 };
+  return { e, d, side, box: d.swim ? [-135, -45, 130, 55] : d.box, hp: HPMAX, hpShow: HPMAX, off: 0, kx: 0, hop: 0, sq: 0, tilt: 0, lean: 0, leanT: 0, flip: 1, reach: 0, reachT: 0, swipe: 0, swipeT: 0, kick: 0, kickT: 0, hitNod: 0, recoil: 0, pace: 0, paceT: 0, kv: 0, kxT: 0, vel: 0, acc: 0, px: null, tail: 0, tailT: 0, wob: 0, shake: 0, dizzy: 0, jaw: 0, nod: 0, pitch: 0, jawT: 0, nodT: 0, pitchT: 0, amp: 0, ampT: 0, walk: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: rnd(TAU), asleep: 0, s: 1, cx: 0, oy: 0, fx: 0, fy: 0, mid: 0, air: 0 };
 }
 function openDuel(a, b) {
   if (duel || care || a === b || a.gone || b.gone || a.pad.gone || b.pad.gone) return; ac(); setRemoving(false); setPicking(false); if (paint) setPaint(paint);
@@ -2131,27 +2131,28 @@ function stompFx(A, dir) {
 const STARS = { cols: ['#ffd95a', '#fff6dc', '#ff9a3c'], v0: 140, v1: 460, s0: 9, s1: 18, t0: 0.6, t1: 1.1 };
 function strike(A, B, kind, base) {
   const D = duel, dir = -A.side; let dmg = base; if (A.d.size > B.d.size + 0.12 && Math.random() < 0.35) dmg++;
-  B.hp = Math.max(0, B.hp - dmg); B.dizzy = 1.5; B.wob = 1; B.shake = 0.3; B.sq = 0.28; B.hitNod = -0.32; B.recoil = 0.35; if (B.jaw < 0.5) B.jawT = 0.8;
+  B.hp = Math.max(0, B.hp - dmg); D.stop = dmg > base ? 0.12 : 0.075; D.punch = 1; B.dizzy = 1.5; B.wob = 1; B.shake = 0.3; B.sq = 0.28; B.hitNod = -0.32; B.recoil = 0.35; if (B.jaw < 0.5) B.jawT = 0.8;
   const by = B.oy + B.s * (B.box[1] + B.box[3]) / 2, mx = (A.cx + A.off + B.cx + B.off) / 2, bx = B.cx + B.off, big = dmg > base;
   if (kind === 'bite') {
-    const m = fpos(A, A.d.mouthRoar[0] + 26 * A.reach, A.d.mouthRoar[1]); B.kx += dir * 10; D.shakeT = 0.16;
+    const m = fpos(A, A.d.mouthRoar[0] + 26 * A.reach, A.d.mouthRoar[1]); B.kv += dir * 10 * 11; D.shakeT = 0.16;
     const cy = m[1] + A.s * 22; dpuff(m[0] + dir * A.s * 10, cy, 'chomp', 1, { v0: 0, v1: 0, s0: 30, s1: 30, t0: 0.55, t1: 0.55, grow: 0.5 });
     dpuff(m[0] + dir * A.s * 10, cy, 'star', big ? 14 : 7, STARS); sfx.chomp();
   } else if (kind === 'claw') {
-    B.kx += dir * 14; D.shakeT = 0.16; dpuff(bx - dir * B.s * (B.box[2] - B.box[0]) * 0.18, by - B.s * 12, 'slash', 1, { v0: 0, v1: 0, s0: 52, s1: 52, t0: 0.5, t1: 0.5, grow: 0.3 });
+    B.kv += dir * 14 * 11; D.shakeT = 0.16; dpuff(bx - dir * B.s * (B.box[2] - B.box[0]) * 0.18, by - B.s * 12, 'slash', 1, { v0: 0, v1: 0, s0: 52, s1: 52, t0: 0.5, t1: 0.5, grow: 0.3 });
     dpuff(bx, by, 'star', big ? 12 : 6, STARS); noise(0.12, 3800, 1600, 0.3, 'highpass'); sfx.tock();
   } else if (kind === 'tail') {
-    B.kx += dir * 46; B.hop = 0.45; D.shakeT = 0.3; dpuff(mx, by, 'swoosh', 1, { v0: 0, v1: 0, s0: 80, s1: 80, t0: 0.5, t1: 0.5, grow: 0.5 }); { const sp = D.parts[D.parts.length - 1]; sp.rot = dir > 0 ? 0 : Math.PI; sp.vr = 0; }
+    B.kv += dir * 46 * 11; B.hop = 0.45; D.shakeT = 0.3; dpuff(mx, by, 'swoosh', 1, { v0: 0, v1: 0, s0: 80, s1: 80, t0: 0.5, t1: 0.5, grow: 0.5 }); { const sp = D.parts[D.parts.length - 1]; sp.rot = dir > 0 ? 0 : Math.PI; sp.vr = 0; }
     dpuff(mx, by, 'pow', 1, { v0: 0, v1: 0, s0: 52, s1: 52, t0: 0.55, t1: 0.55, grow: 0.7 }); dpuff(mx, by, 'star', big ? 24 : 14, STARS); sfx.thud(); sfx.boing();
   } else if (kind === 'horn') {
-    B.kx += dir * 40; B.hop = 0.45; D.shakeT = 0.3; dpuff(mx, by, 'pow', 1, { v0: 0, v1: 0, s0: 56, s1: 56, t0: 0.55, t1: 0.55, grow: 0.7 }); dpuff(mx, by, 'star', big ? 24 : 14, STARS); sfx.thud(); sfx.tock();
+    B.kv += dir * 40 * 11; B.hop = 0.45; D.shakeT = 0.3; dpuff(mx, by, 'pow', 1, { v0: 0, v1: 0, s0: 56, s1: 56, t0: 0.55, t1: 0.55, grow: 0.7 }); dpuff(mx, by, 'star', big ? 24 : 14, STARS); sfx.thud(); sfx.tock();
   } else if (kind === 'stomp') {
-    B.hop = 0.45; B.kx += dir * 14; D.shakeT = 0.18; dpuff(bx, by, 'pow', 1, { v0: 0, v1: 0, s0: 42, s1: 42, t0: 0.5, t1: 0.5, grow: 0.7 }); dpuff(bx, by, 'star', big ? 16 : 8, STARS); sfx.thud();
-  } else { B.kx += dir * 26; D.shakeT = 0.12; dpuff(bx, by, 'star', big ? 14 : 8, STARS); sfx.tock(); }
+    B.hop = 0.45; B.kv += dir * 14 * 11; D.shakeT = 0.18; dpuff(bx, by, 'pow', 1, { v0: 0, v1: 0, s0: 42, s1: 42, t0: 0.5, t1: 0.5, grow: 0.7 }); dpuff(bx, by, 'star', big ? 16 : 8, STARS); sfx.thud();
+  } else { B.kv += dir * 26 * 11; D.shakeT = 0.12; dpuff(bx, by, 'star', big ? 14 : 8, STARS); sfx.tock(); }
   duelSubEl.textContent = (big ? 'Super ' + MOVE_NAME[kind].toLowerCase() : MOVE_NAME[kind]) + '!';
   if (B.hp <= 0) startEnd(A, B);
 }
 // how far the attacker must step so that its striking part (mouth, claws, horns or tail) lands on the other dinosaur
+const HIT_AT = { roar: 0.8, stomp: 1.4, horn: 0.62, bite: 0.6, claw: 0.65, tail: 0.75 };
 function contactTrav(A, B, frontLocal, depth) {
   const dir = -A.side, gap = Math.abs(B.cx - A.cx);
   const tl = B.box[2] - depth * (B.box[2] - B.box[0]), xt = B.cx + B.kx - B.side * B.s * (tl - B.mid), xa = A.cx + dir * A.s * (frontLocal - A.mid);
@@ -2198,7 +2199,7 @@ function updateMove(dt) {
     else if (t < 1.25) A.off = dir * T;
     else walk(1 - kk(1.25, 1.85), T);
     if (t >= 0.5 && t < 0.6) { A.reachT = 1; A.jawT = 1; A.leanT = 0.1; }
-    else if (t >= 0.6 && t < 0.9) { A.reachT = 1; A.jawT = 0; A.leanT = 0.1; A.pitchT = Math.sin(t * 42) * 0.16; B.kx = dir * (14 + Math.sin(t * 42) * 12); B.nodT += 0.15; }
+    else if (t >= 0.6 && t < 0.9) { A.reachT = 1; A.jawT = 0; A.leanT = 0.1; A.pitchT = Math.sin(t * 42) * 0.16; B.kxT = dir * (14 + Math.sin(t * 42) * 12); B.nodT += 0.15; }
     else if (t >= 0.9 && t < 1.0) { A.reachT = 0.35; A.jawT = 1; }
     else if (t >= 1.0 && t < 1.2) { A.reachT = 1; A.jawT = 0; A.leanT = 0.12; }
     if (!m.h1 && t >= 0.6) { m.h1 = 1; strike(A, B, 'bite', 2); }
@@ -2246,25 +2247,35 @@ function updateEnd(dt) {
 }
 function updateDuel(dt) {
   const D = duel; if (D.a.gone || D.b.gone || D.a.pad.gone || D.b.pad.gone) { closeDuel(); return; }
+  if (D.stop > 0) { D.stop -= dt; dt *= 0.1; }   // a split-second freeze on each hit gives it weight
+  D.punch = Math.max(0, (D.punch || 0) - dt * 4);
   D.t += dt; D.shakeT = Math.max(0, D.shakeT - dt); duelGeo();
-  for (const F of D.f) { F.jawT = 0; F.nodT = F.hitNod; F.pitchT = 0; F.ampT = 0; F.leanT = F.recoil > 0 ? -0.14 : 0; F.reachT = 0; F.swipeT = 0; F.kickT = 0; }
+  for (const F of D.f) { F.jawT = 0; F.nodT = F.hitNod; F.pitchT = 0; F.ampT = 0; F.leanT = F.recoil > 0 ? -0.14 : 0; F.reachT = 0; F.swipeT = 0; F.kickT = 0; F.kxT = 0; F.tailT = 0; }
   if (!D.greeted && D.t > 0.5) { D.greeted = true; duelRoar(D.f[0]); later(0.5, () => { if (duel === D) duelRoar(D.f[1]); }); }
   updateMove(dt);
+  if (D.mv && !D.end) { const m = D.mv, hitAt = HIT_AT[m.type] || 0.6; if (m.t > hitAt - 0.22 && m.t < hitAt) m.B.leanT -= 0.07; if (m.type === 'tail' && m.t > 0.55 && m.t < 0.9) m.A.tailT = m.t < 0.72 ? 1 : -1; }   // the other one braces just before the blow lands
   if (D.end) updateEnd(dt);
   else if (!D.mv && D.t > 1.8) { D.aiT -= dt; if (D.aiT <= 0) { startMove(D.f[1], D.f[0], pick(D.kit[1])); D.aiT = rnd(2.2, 3.6); } }
   for (const F of D.f) {
     F.hop = Math.max(0, F.hop - dt); F.sq = Math.max(0, F.sq - dt); F.shake = Math.max(0, F.shake - dt); F.dizzy = Math.max(0, F.dizzy - dt); F.wob = Math.max(0, F.wob - dt * 1.2);
     F.blinkT -= dt; if (F.blinkT < -0.14) F.blinkT = rnd(1.5, 4.5); F.flap += dt * 7.5; F.hpShow += (F.hp - F.hpShow) * Math.min(1, dt * 2.4);
-    F.kx += (0 - F.kx) * Math.min(1, dt * 4.5);
-    const pv = (F.paceT - F.pace) * Math.min(1, dt * 3); F.pace += pv; if (D.t < 1.2 || Math.abs(pv) > dt * 4) F.ampT = Math.max(F.ampT, D.t < 1.2 ? 0.9 : 0.4);
+    { const st = Math.min(dt, 1 / 30); F.kv += ((F.kxT - F.kx) * 150 - F.kv * 15) * st; F.kx += F.kv * st; }   // knocked back on a spring: a shove, a little overshoot, then settle
+    const pv = (F.paceT - F.pace) * Math.min(1, dt * 3); F.pace += pv;
     const mine = D.mv && D.mv.A === F;
     if (!mine) F.off += (0 - F.off) * Math.min(1, dt * 6);
     if (!(mine && D.mv.type === 'tail')) F.flip += (1 - F.flip) * Math.min(1, dt * 10);
     if (F.roarT > 0) { F.roarT -= dt; F.jawT = 1; F.nodT = -0.22; F.ringT -= dt; if (F.ringT <= 0) { F.ringT = 0.16; const m = fpos(F, F.d.mouthRoar[0], F.d.mouthRoar[1]); D.parts.push({ x: m[0], y: m[1], vx: -F.side * 300, vy: -20, g: 0, life: 0, max: 0.6, kind: 'ring', col: '#fff6dc', size: 12 * F.s, rot: F.side < 0 ? 0 : Math.PI, vr: 0, grow: 3 }); } }
     if (F.asleep) { F.nodT = 0.28; F.tilt += (-0.34 - F.tilt) * Math.min(1, dt * 5); } else F.tilt = F.wob > 0 ? Math.sin(D.t * 18) * 0.09 * F.wob : F.tilt * Math.max(0, 1 - dt * 8);
-    F.lean += (F.leanT - F.lean) * Math.min(1, dt * 16); F.reach += (F.reachT - F.reach) * Math.min(1, dt * 20); F.swipe += (F.swipeT - F.swipe) * Math.min(1, dt * 26); F.kick += (F.kickT - F.kick) * Math.min(1, dt * 22);
+    { // legs step exactly as fast as the body moves (no sliding feet), and the body leans into speed with the tail trailing behind
+      const X = F.cx + F.off + F.kx; if (F.px === null) F.px = X; const v = dt > 0 ? (X - F.px) / dt : 0; F.px = X;
+      const a0 = (v - F.vel) / Math.max(dt, 1e-3); F.vel += (v - F.vel) * Math.min(1, dt * 14); F.acc += (a0 - F.acc) * Math.min(1, dt * 8);
+      const fwd = -F.side * (F.flip < 0 ? -1 : 1), sp = Math.abs(F.vel) / Math.max(0.2, F.s), dirW = Math.sign(F.vel * fwd) || 1;
+      if (sp > 10) { F.ampT = Math.max(F.ampT, clamp(sp / 140, 0.3, 1)); F.walk += dirW * Math.PI * sp * dt / (2 * 24 * Math.max(0.3, F.amp)); }
+      const ak = F.acc * fwd / Math.max(0.2, F.s); F.leanT += clamp(ak / 9000, -0.07, 0.07); F.tailT += clamp(-ak / 2500, -0.6, 0.6);
+    }
+    F.lean += (F.leanT - F.lean) * Math.min(1, dt * 10); F.tail += (F.tailT - F.tail) * Math.min(1, dt * 7); F.reach += (F.reachT - F.reach) * Math.min(1, dt * 20); F.swipe += (F.swipeT - F.swipe) * Math.min(1, dt * 26); F.kick += (F.kickT - F.kick) * Math.min(1, dt * 22);
     F.hitNod *= Math.max(0, 1 - dt * 5); F.recoil = Math.max(0, F.recoil - dt);
-    F.jaw += (F.jawT - F.jaw) * Math.min(1, dt * 14); F.nod += (F.nodT - F.nod) * Math.min(1, dt * 6); F.pitch += (F.pitchT - F.pitch) * Math.min(1, dt * 8); F.amp += (F.ampT - F.amp) * Math.min(1, dt * 8); if (F.amp > 0.05) F.walk += dt * 11;
+    F.jaw += (F.jawT - F.jaw) * Math.min(1, dt * 14); F.nod += (F.nodT - F.nod) * Math.min(1, dt * 6); F.pitch += (F.pitchT - F.pitch) * Math.min(1, dt * 8); F.amp += (F.ampT - F.amp) * Math.min(1, dt * 6);
   }
   for (let i = D.parts.length - 1; i >= 0; i--) { const p = D.parts[i]; p.life += dt; if (p.life >= p.max) { D.parts.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
   const off = !!D.mv || !!D.end; for (const b of dBtns) b.classList.toggle('off', off);
@@ -2277,7 +2288,7 @@ function drawFighter(x, F, sx) {
   const tl = F.tilt + F.lean * (F.flip < 0 ? -1 : 1);
   if (tl) { const py = d.swim || d.fly ? (F.box[1] + F.box[3]) / 2 : F.box[3]; x.translate(F.mid, py); x.rotate(tl); x.translate(-F.mid, -py); }
   DA.time = D.t + e.seed; DA.walk = F.walk; DA.amp = F.amp; DA.jaw = F.jaw; DA.nod = F.nod; DA.pitch = F.pitch; DA.held = false; DA.flap = F.flap; DA.blink = F.blinkT < 0 || F.asleep > 0; DA.sad = F.dizzy > 0 || F.asleep > 0 || F.hp <= HPMAX * 0.25 || !!F.e.hurt;
-  DA.headK = 1 + (1 - e.gk) * 0.6; DA.eyeK = 1 + (1 - e.gk) * 0.5; DA.ow = clamp(4.2 / s, 1.5, 9); DA.lx = 0.8; DA.ly = 0; DA.tex = true; DA.reach = F.reach; DA.swipe = F.swipe; DA.kick = F.kick;
+  DA.headK = 1 + (1 - e.gk) * 0.6; DA.eyeK = 1 + (1 - e.gk) * 0.5; DA.ow = clamp(4.2 / s, 1.5, 9); DA.lx = 0.8; DA.ly = 0; DA.tex = true; DA.reach = F.reach; DA.swipe = F.swipe; DA.kick = F.kick; DA.tail = F.tail;
   if (d.fly) x.translate(0, -16);
   drawDino(x, d, DA); if (e.bandT > 0) bandOn(x, F.box);
   const b = F.box, lg = x.createLinearGradient(0, b[1], 0, b[3]); lg.addColorStop(0, 'rgba(255,248,220,.2)'); lg.addColorStop(0.42, 'rgba(255,255,255,0)'); lg.addColorStop(1, 'rgba(24,16,30,.3)');
@@ -2297,8 +2308,9 @@ function renderDuel() {
   bgT = D.t; careBg(x, D.f[0].d, { gy: D.gy });
   for (const F of D.f) if (!F.d.swim) { const w = (F.box[2] - F.box[0]) * F.s; x.globalAlpha = F.air ? 0.5 : 1; x.drawImage(shadowImg, F.cx + F.off + F.kx - w * 0.62, D.gy - w * 0.15, w * 1.24, w * 0.34); x.globalAlpha = 1; }
   octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, careOff.width, careOff.height); octx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const order = D.end ? [D.end.lose, D.end.win] : D.mv ? [D.mv.B, D.mv.A] : D.f;
-  for (const F of order) drawFighter(octx, F, 0);
+  const order = D.end ? [D.end.lose, D.end.win] : D.mv ? [D.mv.B, D.mv.A] : D.f, shx = !reduceMotion && D.shakeT > 0 ? Math.sin(D.t * 75) * 5 * Math.min(1, D.shakeT / 0.2) : 0;
+  for (const F of order) drawFighter(octx, F, shx);
+  const z = reduceMotion ? 1 : 1 + 0.035 * D.punch * D.punch; x.setTransform(DPR * z, 0, 0, DPR * z, DPR * W / 2 * (1 - z), DPR * D.gy * (1 - z));
   x.drawImage(careOff, 0, 0, W, H);
   for (const F of D.f) {
     const d = F.d, hx = F.fx - F.side * F.s * (d.eye[0] - F.mid), hy = F.fy + F.s * d.eye[1], top = F.fy + F.s * F.box[1] - 18;
@@ -2309,6 +2321,7 @@ function renderDuel() {
   if (!D.moved && !D.end) { const A = D.f[0], ay = A.fy + A.s * A.box[1] - 20 + Math.sin(D.t * 5) * 7; x.beginPath(); x.moveTo(A.fx - 20, ay - 30); x.lineTo(A.fx + 20, ay - 30); x.lineTo(A.fx, ay); x.closePath(); x.fillStyle = '#ffd93b'; x.fill(); x.lineWidth = 4; x.lineJoin = 'round'; x.strokeStyle = OUT; x.stroke(); }
   if (D.end && D.end.med && D.end.step === 2) { x.save(); x.translate(D.end.med.x, D.end.med.y); drawMed(x, 34); x.restore(); }
   for (const p of D.parts) drawPart(p, x);
+  x.setTransform(DPR, 0, 0, DPR, 0, 0);
   // health bars with the dinosaur's name
   const bw = clamp(W * 0.36, 140, 380), bh = clamp(H * 0.03, 14, 24);
   for (const F of D.f) {
