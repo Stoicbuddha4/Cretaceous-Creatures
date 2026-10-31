@@ -172,12 +172,15 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 #duelCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .cbtn[hidden]{display:none}
 .cbtn.off{opacity:.5}
+.cbtn.on{background:var(--sun)}
 #careTop,#duelTop,#digTop{position:absolute;top:14px;left:50%;transform:translateX(-50%);box-sizing:border-box;max-width:calc(100% - var(--b)*2 - 64px);text-align:center;background:var(--paper);border:3px solid var(--ink);border-radius:28px;padding:6px 20px 8px;box-shadow:0 5px 0 rgba(27,42,38,.35);pointer-events:none}
 #careName,#duelName,#digName{display:block;font-weight:700;font-size:clamp(17px,3.6vw,36px);line-height:1.1;overflow-wrap:break-word;text-wrap:balance}
 #careNeeds,#duelSub,#digSub{display:block;font-weight:500;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em;opacity:.78}
 #careClose,#duelClose,#digClose{position:absolute;top:12px;right:16px;width:calc(var(--b)*.92);height:calc(var(--b)*.92);border-radius:50%;padding:0;background:var(--sun);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);display:grid;place-items:center}
 #careClose:active,#duelClose:active,#digClose:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
 #careClose svg,#duelClose svg,#digClose svg{width:52%;height:52%;display:block}
+#careEnv{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(8px,2.2vw,22px);padding:0 12px;pointer-events:none}
+#careEnv .cbtn{flex:0 1 calc(var(--b)*1.05)}
 #careBar,#duelBar,#digBar{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(14px,4vw,44px);padding:0 16px;pointer-events:none}
 .cbtn{pointer-events:auto;position:relative;flex:0 1 calc(var(--b)*1.25);min-width:0;aspect-ratio:1;border-radius:28px;background:var(--paper);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);padding:0}
 .cbtn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
@@ -242,7 +245,9 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
     <canvas id="careCv" aria-label="Your dinosaur. Tap an egg ten times to hatch it. Tap a dinosaur to make it roar, or rub it to scrub it clean."></canvas>
     <div id="careTop"><span id="careName"></span><span id="careNeeds" aria-live="polite"></span></div>
     <button id="careClose" type="button" aria-label="Back to the island" title="Back to the island"><svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5l-7 7 7 7"/></svg></button>
+    <div id="careEnv" hidden><button class="cbtn" type="button" data-env="forest" aria-label="Forest" title="Forest"><canvas></canvas></button><button class="cbtn" type="button" data-env="grass" aria-label="Grassland" title="Grassland"><canvas></canvas></button><button class="cbtn" type="button" data-env="swamp" aria-label="Swamp" title="Swamp"><canvas></canvas></button><button class="cbtn" type="button" data-env="desert" aria-label="Desert" title="Desert"><canvas></canvas></button><button class="cbtn" type="button" data-env="rocky" aria-label="Rocky hills" title="Rocky hills"><canvas></canvas></button></div>
     <div id="careBar">
+      <button id="careHome" class="cbtn" type="button" aria-label="Change its home" title="Change its home"><canvas></canvas></button>
       <button id="careFeed" class="cbtn" type="button" aria-label="Feed" title="Feed"><canvas></canvas></button>
       <button id="carePlay" class="cbtn" type="button" aria-label="Play" title="Play"><canvas></canvas></button>
       <button id="careWash" class="cbtn" type="button" aria-label="Wash" title="Wash"><canvas></canvas></button>
@@ -1142,7 +1147,7 @@ function freeSpot(n, cx, cy, maxD = 99) {
 }
 function viewCenterG(j = 0) { const w = s2w(W / 2, cy0), g = w2g(w[0], w[1]); return [clamp(g[0] + rnd(-j, j), 1, N - 1), clamp(g[1] + rnd(-j, j), 1, N - 1)]; }
 function mkPad(type, gx, gy, style) {
-  const d = DEF[type], o = { id: nid++, kind: 'pad', n: padSize(type), gx, gy, style: style || (d.swim ? 'lagoon' : d.diet === 'plant' ? 'herb' : 'carn'), dinos: [], seed: rnd(100), sq: 0.28, held: false, bad: false };
+  const d = DEF[type], o = { id: nid++, kind: 'pad', n: padSize(type), gx, gy, style: style || (d.swim ? 'lagoon' : d.diet === 'plant' ? 'herb' : 'carn'), dinos: [], env: null, seed: rnd(100), sq: 0.28, held: false, bad: false };
   objs.push(o); setOcc(o, true); dirty(); return o;
 }
 function mkProp(type, gx, gy, drop) {
@@ -1230,10 +1235,10 @@ function updDino(e, dt) {
   if (e.stage === 'egg') { if (!pad.held && e.drop <= 0) e.eggT += dt; return; }
   e.gk += (stageK(e.stage) - e.gk) * Math.min(1, dt * 5);
   e.blinkT -= dt; if (e.blinkT < -0.14) e.blinkT = rnd(1.5, 5);
-  const wants = e.hurt || e.hungryIn <= 0 || e.playIn <= 0 || e.dirtyIn <= 0;
+  const wants = e.hurt || !homeOk(e) || e.hungryIn <= 0 || e.playIn <= 0 || e.dirtyIn <= 0;
   if (!wants) { e.needIn -= dt; if (e.needIn <= 0) pickNeed(e); } else if (e.hungryIn <= 0 && !e.food && !pad.held) e.hungryIn -= dt;
   if (e.bandT > 0) e.bandT -= dt;
-  const hungry = e.hungryIn <= 0 && !e.food, needy = hungry || e.playIn <= 0 || e.dirtyIn <= 0 || e.hurt; e.bub += ((needy ? 1 : 0) - e.bub) * Math.min(1, dt * 8);
+  const nd0 = needsOf(e), hungry = nd0.hungry, needy = nd0.hurt || nd0.home || hungry || nd0.bored || nd0.dirty; e.bub += ((needy ? 1 : 0) - e.bub) * Math.min(1, dt * 8);
   if (hungry && e.hungryIn < -4 && time - lastTum > 10 && Math.random() < dt * 0.3) { const p = dpos(e); if (vis(p[0], p[1])) { lastTum = time; sfx.tum(); e.sq = 0.22; } }
   let jawT = 0, nodT = 0, ampT = 0, pitchT = 0; const sc = dscale(e), f = e.food ? foods.find(x => x.id === e.food) : null;
   if (e.food && !f) { e.food = null; if (e.state === 'food' || e.state === 'eat') { e.state = 'idle'; e.wait = 0.4; } }
@@ -1405,17 +1410,60 @@ function drawIsland() {
   for (let gy = 0; gy < N; gy++) for (let gx = 0; gx < N; gx++) { const i = ti(gx, gy); if (tiles[i] !== 2) continue; const d = deco[i], c = g2w(gx + 0.5 + d.x * 0.4, gy + 0.5 + d.y * 0.4), k = 0.5 + 0.5 * Math.sin(time * 1.6 + d.c * 9); ctx.globalAlpha = k; ctx.beginPath(); ctx.moveTo(c[0] - 12, c[1]); ctx.quadraticCurveTo(c[0] - 6, c[1] - 5, c[0], c[1]); ctx.quadraticCurveTo(c[0] + 6, c[1] + 5, c[0] + 12, c[1]); ctx.stroke(); }
   ctx.globalAlpha = 1;
 }
+/* ============ habitats: every paddock can be made into a forest, grassland, swamp, desert or rocky hills, and each dinosaur has the one it likes ============ */
+const ENVS = {
+  forest: { name: 'Forest', pad: '#4f8f3f', bg: ['#5f9a46', '#3f7432'] },
+  grass: { name: 'Grassland', pad: '#8cc75c', bg: ['#96ca63', '#62953f'] },
+  swamp: { name: 'Swamp', pad: '#76814a', bg: ['#7d8852', '#55603a'] },
+  desert: { name: 'Desert', pad: '#e3c47f', bg: ['#ecd29c', '#c9a467'] },
+  rocky: { name: 'Rocky hills', pad: '#aaa08e', bg: ['#b5ac9a', '#8a8172'] },
+};
+const ENV_LIST = ['forest', 'grass', 'swamp', 'desert', 'rocky'], BARE_BG = ['#b8996c', '#8f7350'];
+const PREF = {
+  trex: 'forest', raptor: 'desert', spino: 'swamp', dilo: 'forest', carno: 'grass', allo: 'grass', giga: 'grass', bary: 'swamp', cerato: 'forest', compy: 'desert',
+  trike: 'grass', stego: 'forest', brachio: 'forest', ankylo: 'rocky', para: 'swamp', pachy: 'rocky', diplo: 'grass', iguan: 'forest', styra: 'grass', theri: 'forest', kentro: 'swamp', galli: 'desert',
+  ptera: 'rocky', quetz: 'rocky', dimorph: 'rocky',
+};
+const prefOf = e => PREF[e.type] || 'grass';
+function homeOk(e) {   // swimmers live in their lagoon already; a paddock shared by two different dinosaurs suits either one's choice
+  if (e.def.swim || !e.pad || e.stage === 'egg') return true; const env = e.pad.env; if (!env) return false; if (env === prefOf(e)) return true;
+  const ps = e.pad.dinos.filter(d => d.stage !== 'egg').map(prefOf); return new Set(ps).size > 1 && ps.includes(env);
+}
+function drawEnvIcon(c, env, r) {
+  c.save(); circ(c, 0, 0, r); c.clip();
+  c.fillStyle = env === 'desert' ? '#ffe9b0' : '#bfe6f5'; c.fillRect(-r, -r, 2 * r, 2 * r);
+  const grd = env ? ENVS[env].pad : '#a98a5e'; c.fillStyle = grd; c.beginPath(); c.moveTo(-r, r * 0.15); c.quadraticCurveTo(0, -r * 0.05, r, r * 0.2); c.lineTo(r, r); c.lineTo(-r, r); c.closePath(); c.fill();
+  c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = OUT; c.lineWidth = Math.max(1.5, r * 0.06);
+  const tree = (x, y, s) => { c.fillStyle = '#7a5230'; c.fillRect(x - s * 0.12, y - s * 0.5, s * 0.24, s * 0.55); c.strokeRect(x - s * 0.12, y - s * 0.5, s * 0.24, s * 0.55); c.fillStyle = '#2f6b34'; circ(c, x, y - s * 0.75, s * 0.48); c.fill(); c.stroke(); circ(c, x - s * 0.15, y - s * 0.9, s * 0.18); c.fillStyle = 'rgba(255,255,255,.18)'; c.fill(); };
+  const rock = (x, y, s, col) => { c.fillStyle = col || '#8f887b'; c.beginPath(); c.moveTo(x - s, y); c.quadraticCurveTo(x - s * 0.9, y - s * 0.9, x - s * 0.1, y - s); c.quadraticCurveTo(x + s * 0.9, y - s * 0.8, x + s, y); c.closePath(); c.fill(); c.stroke(); };
+  if (env === 'forest') { tree(-r * 0.45, r * 0.35, r * 0.7); tree(r * 0.42, r * 0.38, r * 0.8); tree(0, r * 0.62, r * 0.6); }
+  else if (env === 'grass') { c.strokeStyle = '#2f6b34'; c.lineWidth = r * 0.07; for (let i = -3; i <= 3; i++) { const x = i * r * 0.27, y = r * (0.45 + (i % 2) * 0.15); c.beginPath(); c.moveTo(x - r * 0.1, y - r * 0.2); c.lineTo(x, y); c.lineTo(x + r * 0.1, y - r * 0.24); c.moveTo(x, y); c.lineTo(x, y - r * 0.26); c.stroke(); } c.fillStyle = '#ffd93b'; for (const [x, y] of [[-0.5, 0.2], [0.35, 0.3], [0.05, 0.75]]) { circ(c, x * r, y * r, r * 0.07); c.fill(); } }
+  else if (env === 'swamp') { c.fillStyle = '#4d9a98'; c.beginPath(); c.ellipse(r * 0.05, r * 0.55, r * 0.75, r * 0.24, 0, 0, TAU); c.fill(); c.stroke(); c.strokeStyle = '#3c6b2c'; c.lineWidth = r * 0.07; for (const x of [-0.6, -0.42, 0.55, 0.7]) { c.beginPath(); c.moveTo(x * r, r * 0.55); c.lineTo(x * r + r * 0.05, -r * 0.05); c.stroke(); c.fillStyle = '#7a4a26'; c.beginPath(); c.ellipse(x * r + r * 0.05, r * 0.02, r * 0.05, r * 0.12, 0, 0, TAU); c.fill(); } }
+  else if (env === 'desert') { c.fillStyle = '#ffd24a'; circ(c, r * 0.45, -r * 0.45, r * 0.2); c.fill(); c.fillStyle = '#d8b06a'; c.beginPath(); c.moveTo(-r, r * 0.5); c.quadraticCurveTo(-r * 0.3, r * 0.05, r * 0.4, r * 0.5); c.closePath(); c.fill(); rock(r * 0.4, r * 0.62, r * 0.22, '#b4936a'); }
+  else if (env === 'rocky') { c.fillStyle = '#9a9384'; c.beginPath(); c.moveTo(-r, r * 0.2); c.lineTo(-r * 0.25, -r * 0.55); c.lineTo(r * 0.3, r * 0.05); c.lineTo(r * 0.6, -r * 0.25); c.lineTo(r, r * 0.2); c.closePath(); c.fill(); c.stroke(); rock(-r * 0.35, r * 0.62, r * 0.38); rock(r * 0.38, r * 0.66, r * 0.3); }
+  else { c.fillStyle = '#6b4f2c'; c.font = '700 ' + Math.round(r * 1.1) + 'px system-ui, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('?', 0, r * 0.05); }
+  c.restore(); c.lineWidth = Math.max(2, r * 0.09); c.strokeStyle = OUT; circ(c, 0, 0, r); c.stroke();
+}
+function padDecor(o, R) {   // flat details painted on a paddock floor so you can see its habitat from above
+  const env = o.env, at = () => g2w(o.gx + 0.3 + R() * (o.n - 0.6), o.gy + 0.3 + R() * (o.n - 0.6)), n = o.n * o.n;
+  if (!env) { for (let i = 0; i < n * 2; i++) { const c = at(); ctx.fillStyle = R() < 0.5 ? 'rgba(110,80,46,.35)' : 'rgba(230,200,150,.3)'; ctx.beginPath(); ctx.ellipse(c[0], c[1], 10 + R() * 12, 5 + R() * 4, 0, 0, TAU); ctx.fill(); } return; }
+  if (env === 'forest' || env === 'grass') for (let i = 0; i < n * 2; i++) { const c = at(); ctx.fillStyle = R() < 0.5 ? 'rgba(40,110,45,.45)' : 'rgba(170,230,120,.4)'; ctx.beginPath(); ctx.ellipse(c[0], c[1], 14 + R() * 12, 6 + R() * 4, 0, 0, TAU); ctx.fill(); }
+  ctx.lineWidth = 2; ctx.strokeStyle = OUT;
+  if (env === 'forest') for (let i = 0; i < n; i++) { const c = at(), r = 9 + R() * 7; ctx.fillStyle = R() < 0.5 ? '#2f6b34' : '#3f8240'; ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 1.3, r * 0.75, 0, 0, TAU); ctx.fill(); ctx.stroke(); }
+  if (env === 'grass') for (let i = 0; i < n * 2; i++) { const c = at(); ctx.fillStyle = pick(['#ffd93b', '#fff6dc', '#f7a8c4']); circ(ctx, c[0], c[1], 3); ctx.fill(); }
+  if (env === 'swamp') { for (let i = 0; i < Math.max(2, n * 0.6); i++) { const c = at(); ctx.fillStyle = '#4d9a98'; ctx.beginPath(); ctx.ellipse(c[0], c[1], 22 + R() * 16, 9 + R() * 6, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(27,42,38,.5)'; ctx.stroke(); } ctx.strokeStyle = '#3c6b2c'; ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i < n * 2; i++) { const c = at(); ctx.moveTo(c[0], c[1]); ctx.lineTo(c[0] + 2, c[1] - 14); } ctx.stroke(); }
+  if (env === 'desert') { ctx.strokeStyle = 'rgba(176,136,70,.6)'; ctx.lineWidth = 3; for (let i = 0; i < n * 1.5; i++) { const c = at(); ctx.beginPath(); ctx.arc(c[0], c[1] + 10, 18, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke(); } }
+  if (env === 'rocky' || env === 'desert') for (let i = 0; i < (env === 'rocky' ? n * 1.2 : n * 0.4); i++) { const c = at(), r = 6 + R() * 8; ctx.fillStyle = env === 'rocky' ? pick(['#8f887b', '#a39b8b']) : '#b4936a'; ctx.beginPath(); ctx.ellipse(c[0], c[1], r * 1.2, r * 0.7, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = OUT; ctx.lineWidth = 2; ctx.stroke(); }
+}
 const PADCOL = { herb: '#6aa24c', carn: '#ceb98b', lagoon: '#e8d6a6' };
 function drawPadGround(o) {
   ctx.save(); if (o.held) ctx.translate(0, -14);
-  quadPath(o.gx, o.gy, o.n); ctx.fillStyle = PADCOL[o.style]; ctx.fill(); ctx.strokeStyle = 'rgba(27,42,38,.45)'; ctx.lineWidth = 3; ctx.stroke();
+  quadPath(o.gx, o.gy, o.n); ctx.fillStyle = o.style === 'lagoon' ? PADCOL.lagoon : o.env ? ENVS[o.env].pad : '#b0916a'; ctx.fill(); ctx.strokeStyle = 'rgba(27,42,38,.45)'; ctx.lineWidth = 3; ctx.stroke();
   const R = mulberry(Math.floor(o.seed * 1000) + 1);
   if (o.style === 'lagoon') {
     quadPath(o.gx, o.gy, o.n, 0.13); ctx.fillStyle = '#3aa3cf'; ctx.fill(); ctx.strokeStyle = 'rgba(27,42,38,.35)'; ctx.lineWidth = 2.5; ctx.stroke();
     quadPath(o.gx, o.gy, o.n, 0.45); ctx.fillStyle = 'rgba(126,216,236,.5)'; ctx.fill();
-  } else {
-    for (let i = 0; i < o.n * o.n * 2; i++) { const c = g2w(o.gx + 0.3 + R() * (o.n - 0.6), o.gy + 0.3 + R() * (o.n - 0.6)); if (o.style === 'herb') { ctx.fillStyle = R() < 0.5 ? 'rgba(52,130,52,.4)' : 'rgba(160,226,120,.45)'; ctx.beginPath(); ctx.ellipse(c[0], c[1], 14 + R() * 12, 6 + R() * 4, 0, 0, TAU); ctx.fill(); } else { ctx.fillStyle = R() < 0.5 ? 'rgba(170,140,84,.5)' : 'rgba(255,246,220,.5)'; ctx.beginPath(); ctx.ellipse(c[0], c[1], 5 + R() * 9, 2.5 + R() * 4, 0, 0, TAU); ctx.fill(); } }
-  }
+  } else padDecor(o, R);
   ctx.restore();
 }
 function highlight(gx, gy, n, ok) { quadPath(gx, gy, n, -0.03); ctx.fillStyle = ok ? 'rgba(255,255,255,.38)' : 'rgba(242,84,45,.55)'; ctx.fill(); ctx.strokeStyle = ok ? '#fff' : '#f2542d'; ctx.lineWidth = 5; ctx.setLineDash([14, 10]); ctx.lineDashOffset = -time * 30; ctx.stroke(); ctx.setLineDash([]); }
@@ -1442,7 +1490,7 @@ function drawDinoEnt(e) {
     if (!e.pad.held && e.drop <= 0) { ctx.globalAlpha = (1 - k) * 0.85; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2, 2.6 / cam.z); ctx.beginPath(); ctx.ellipse(p[0], p[1], 14 + 30 * k, (14 + 30 * k) * 0.45, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1; }
     ctx.translate(p[0], y); ctx.rotate(e.pad.held ? 0 : Math.sin(e.eggT * 19) * 0.13 * wob); ctx.scale(s * kx, s * ky); drawEgg(ctx, d.c.base, { ow: owFor(s) }, (e.taps || 0) / 10); ctx.restore(); return;
   }
-  AA.time = time + e.seed; AA.walk = e.walk; AA.amp = e.amp; AA.jaw = e.jaw; AA.nod = e.nod; AA.pitch = e.pitch; AA.held = e.pad.held; AA.flap = e.flap; AA.blink = e.blinkT < 0; AA.tex = dscale(e) * cam.z > 0.95; AA.fine = dscale(e) * cam.z > 0.55; AA.sad = (e.hungryIn <= 0 && !e.food) || e.playIn <= 0 || e.dirtyIn <= 0 || !!e.hurt;
+  AA.time = time + e.seed; AA.walk = e.walk; AA.amp = e.amp; AA.jaw = e.jaw; AA.nod = e.nod; AA.pitch = e.pitch; AA.held = e.pad.held; AA.flap = e.flap; AA.blink = e.blinkT < 0; AA.tex = dscale(e) * cam.z > 0.95; AA.fine = dscale(e) * cam.z > 0.55; AA.sad = (e.hungryIn <= 0 && !e.food) || e.playIn <= 0 || e.dirtyIn <= 0 || !!e.hurt || !homeOk(e);
   AA.headK = 1 + (1 - e.gk) * 0.6; AA.eyeK = 1 + (1 - e.gk) * 0.5;
   let lx = 0.45, ly = 0; if (lastPtr && time - lastPtr.t < 2.5) { const dx = (lastPtr.x - p[0]) * e.dir, dy = lastPtr.y - (y - 70), m = Math.hypot(dx, dy) || 1; lx = dx / m; ly = dy / m; }
   AA.lx = lx; AA.ly = ly;
@@ -1478,6 +1526,7 @@ function drawBubble(e, p) {
   ctx.beginPath(); ctx.moveTo(x - r * 0.26, y + r * 0.72); ctx.lineTo(x + e.dir * r * 0.1, y + r * 1.36); ctx.lineTo(x + r * 0.26, y + r * 0.72); ctx.closePath(); ctx.fill();
   const nd = needsOf(e);   // show the most pressing thing it wants: medicine, food, then play, then a wash
   if (nd.hurt) { ctx.save(); ctx.translate(x, y + r * 0.05); drawMed(ctx, r * 0.56); ctx.restore(); }
+  else if (nd.home) { ctx.save(); ctx.translate(x, y); drawEnvIcon(ctx, prefOf(e), r * 0.78); ctx.restore(); }
   else if (nd.hungry) { const fd = DEF[foodFor(d)], s = r / 37; ctx.save(); ctx.translate(x - (fd.box[0] + fd.box[2]) / 2 * s, y - (fd.box[1] + fd.box[3]) / 2 * s); ctx.scale(s, s); fd.draw(ctx, { time, ow: clamp(2 / (s * cam.z), 2, 8) }); ctx.restore(); }
   else { ctx.save(); ctx.translate(x, y); if (nd.bored) drawBall(ctx, r * 0.62); else drawSoap(ctx, r * 0.6); ctx.restore(); }
 }
@@ -1588,7 +1637,7 @@ function pickup(d) {
   const o = t.kind === 'dino' ? t.ref.pad : t.ref; d.o = o; o.held = true; o.bad = false; o.orig = [o.gx, o.gy]; setOcc(o, false);
   const w = s2w(d.sx, d.sy), g = w2g(w[0], w[1]); d.off = [g[0] - o.gx, g[1] - o.gy]; if (o.kind === 'pad') cancelFoods(o);
 }
-function canJoin(pad, type) { return pad.kind === 'pad' && pad.style !== 'lagoon' && !DEF[type].swim && pad.dinos.length < padCap(pad); }
+function canJoin(pad, type) { return pad.kind === 'pad' && pad.style !== 'lagoon' && !DEF[type].swim && pad.dinos.length < padCap(pad) && pad.dinos.every(d => (PREF[d.type] || 'grass') === (PREF[type] || 'grass')); }
 function moveGhost(d, px, py) {
   const type = d.spawn, def = DEF[type], w = s2w(px, py), g = w2g(w[0], w[1]); ghost = { type, wx: w[0], wy: w[1], show: py < trayTop + 6, n: 0, ok: true, join: null, gx: 0, gy: 0 };
   if (def.cat === 'dino' || def.cat === 'prop') {
@@ -1790,10 +1839,10 @@ function clearPark() { for (const o of objs) { const c = ocenter(o); poof(c[0], 
 
 /* ============ close-up: one dinosaur waiting to be fed, played with or washed ============ */
 const careEl = document.getElementById('care'), careCv = document.getElementById('careCv'), cctx = careCv.getContext('2d'), careOff = document.createElement('canvas'), octx = careOff.getContext('2d');
-const medBtn = document.getElementById('careMed'), feedBtn = document.getElementById('careFeed'), playBtn = document.getElementById('carePlay'), washBtn = document.getElementById('careWash'), careNameEl = document.getElementById('careName'), careNeedsEl = document.getElementById('careNeeds');
+const homeBtn = document.getElementById('careHome'), envRow = document.getElementById('careEnv'), medBtn = document.getElementById('careMed'), feedBtn = document.getElementById('careFeed'), playBtn = document.getElementById('carePlay'), washBtn = document.getElementById('careWash'), careNameEl = document.getElementById('careName'), careNeedsEl = document.getElementById('careNeeds');
 let care = null; const CA = { ...A0 };
 const foodFor = d => d.diet === 'plant' ? 'leaves' : (d.swim || d.fly ? 'fish' : 'meat');
-const needsOf = e => ({ hungry: e.hungryIn <= 0 && !e.food, bored: e.playIn <= 0, dirty: e.dirtyIn <= 0, hurt: !!e.hurt });
+const needsOf = e => { const hurt = !!e.hurt, home = !hurt && !homeOk(e), o = !hurt && !home; return { hurt, home, hungry: o && e.hungryIn <= 0 && !e.food, bored: o && e.playIn <= 0, dirty: o && e.dirtyIn <= 0 }; };
 function drawBall(c, r) {
   c.lineWidth = Math.max(2, r * 0.09); c.strokeStyle = OUT; circ(c, 0, 0, r); c.fillStyle = '#fff6dc'; c.fill();
   ['#e2483d', '#ffc93c', '#3f9aae'].forEach((col, i) => { const a0 = i * TAU / 3 - 0.5; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, r, a0, a0 + TAU / 6); c.closePath(); c.fillStyle = col; c.fill(); });
@@ -1819,7 +1868,7 @@ function paintIcon(cv, fn) { const dpr = Math.min(2, window.devicePixelRatio || 
 function sizeCare() {
   careCv.width = careOff.width = Math.round(W * DPR); careCv.height = careOff.height = Math.round(H * DPR);
   const br = document.getElementById('careBar').getBoundingClientRect(); care.barTop = br.height ? br.top - app.getBoundingClientRect().top : H * 0.9;
-  fitIcon(feedBtn.firstElementChild, [foodFor(care.e.def)], { fill: 0.78 }); paintIcon(playBtn.firstElementChild, drawBall); paintIcon(washBtn.firstElementChild, drawSoap); if (!medBtn.hidden) paintIcon(medBtn.firstElementChild, drawMed);
+  fitIcon(feedBtn.firstElementChild, [foodFor(care.e.def)], { fill: 0.78 }); paintIcon(playBtn.firstElementChild, drawBall); paintIcon(washBtn.firstElementChild, drawSoap); if (!medBtn.hidden) paintIcon(medBtn.firstElementChild, drawMed); paintHome();
 }
 function openCare(e) {
   if (care) return; ac(); setRemoving(false); if (paint) setPaint(paint); const egg = e.stage === 'egg';
@@ -1828,7 +1877,7 @@ function openCare(e) {
   careEl.hidden = false; careEl.classList.toggle('egg', egg); sizeCare(); careNameEl.textContent = e.def.name + (egg ? ' egg' : ''); careNeedsEl.textContent = '';
   if (lastSaid !== e.def.id || time - lastSaidT > 4) { lastSaid = e.def.id; lastSaidT = time; say(e.def.name + (egg ? ' egg' : '')); }
 }
-function closeCare() { if (!care) return; care = null; careEl.hidden = true; sfx.pick(); }
+function closeCare() { if (!care) return; envRow.hidden = true; document.getElementById('careBar').hidden = false; care = null; careEl.hidden = true; sfx.pick(); }
 function careGeo() {
   const c = care, e = c.e, d = e.def, box = d.swim ? [-135, -45, 130, 55] : d.box, gy = Math.min(H * 0.74, c.barTop - 36), air = d.swim || d.fly ? Math.max(70, H * 0.17) : 0;
   const fit = Math.min(W * 0.64 / (box[2] - box[0]), (gy - 104 - air) * 0.88 / (box[3] - box[1]));
@@ -1895,17 +1944,18 @@ function updateCare(dt) {
   c.jaw += (jawT - c.jaw) * Math.min(1, dt * 14); c.nod += (nodT - c.nod) * Math.min(1, dt * 6); c.pitch += (pitchT - c.pitch) * Math.min(1, dt * 6);
   if (!c.act && !n.hungry && !n.bored && !n.dirty) { c.heartT -= dt; if (c.heartT <= 0) { c.heartT = rnd(2, 3.5); cpuff(mid[0] + rnd(-60, 60), G.oy + G.box[1] * G.s, 'heart', 1, { col: '#f06292', an: -Math.PI / 2, spread: 0.6, v0: 60, v1: 90, s0: 12, s1: 18, t0: 1.2, t1: 1.8 }); } }
   for (let i = c.parts.length - 1; i >= 0; i--) { const p = c.parts[i]; p.life += dt; if (p.life >= p.max) { c.parts.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+  homeBtn.classList.toggle('need', n.home);
   if (medBtn.hidden === n.hurt) { medBtn.hidden = !n.hurt; if (n.hurt) paintIcon(medBtn.firstElementChild, drawMed); } medBtn.classList.toggle('need', n.hurt);
   feedBtn.classList.toggle('need', n.hungry); playBtn.classList.toggle('need', n.bored); washBtn.classList.toggle('need', n.dirty);
-  const txt = [n.hurt && 'Needs medicine', n.hungry && 'Hungry', n.bored && 'Wants to play', n.dirty && 'Needs a wash'].filter(Boolean).join(' · ') || 'Happy'; if (txt !== careNeedsEl.textContent) careNeedsEl.textContent = txt;
+  const txt = [n.hurt && 'Needs medicine', n.home && ('Wants a ' + ENVS[prefOf(e)].name.toLowerCase() + ' home'), n.hungry && 'Hungry', n.bored && 'Wants to play', n.dirty && 'Needs a wash'].filter(Boolean).join(' · ') || 'Happy'; if (txt !== careNeedsEl.textContent) careNeedsEl.textContent = txt;
 }
 function finishWash(G, mid) {
   const c = care, e = c.e, was = e.dirtyIn <= 0; if (was) e.needIn = gapOf(e); e.dirtyIn = BIG; c.scrub = 0; sfx.ding(); dirty();
   cpuff(mid[0], mid[1], 'star', was ? 22 : 10, { cols: ['#fff', '#d6f3fb', '#ffd95a'], v0: 120, v1: 400, s0: 9, s1: 18, t0: 0.6, t1: 1.1, r: 80 });
   cpuff(mid[0], G.oy + G.box[1] * G.s, 'heart', 5, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 160, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 });
 }
-function careBg(x, d, G) {
-  const R = mulberry(31), gy = G.gy, care = { t: bgT };
+function careBg(x, d, G, env) {
+  const R = mulberry(31), gy = G.gy, care = { t: bgT }, EB = env ? ENVS[env].bg : BARE_BG;
   if (d.swim) {
     const top = Math.max(60, gy - H * 0.52); let g = x.createLinearGradient(0, 0, 0, top); g.addColorStop(0, '#8fd3f2'); g.addColorStop(1, '#dff5ef'); x.fillStyle = g; x.fillRect(0, 0, W, top + 4);
     g = x.createLinearGradient(0, top, 0, H); g.addColorStop(0, '#3fb2dd'); g.addColorStop(1, '#17659c'); x.fillStyle = g; x.fillRect(0, top, W, H - top);
@@ -1922,20 +1972,29 @@ function careBg(x, d, G) {
   const ridge = (col, base, amp, n2) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, hy + 2); for (let i = 0; i <= n2; i++) x.lineTo(W * i / n2, hy - base - amp * (0.4 + 0.6 * R()) * (i % 2 ? 1 : 0.35)); x.lineTo(W, hy + 2); x.closePath(); x.fill(); };
   ridge('#a9c6cf', hy * 0.06, hy * 0.3, 9); ridge('#86aaa6', hy * 0.02, hy * 0.18, 13);
   g = x.createLinearGradient(0, hy * 0.45, 0, hy); g.addColorStop(0, 'rgba(235,245,240,0)'); g.addColorStop(1, 'rgba(235,245,240,.55)'); x.fillStyle = g; x.fillRect(0, hy * 0.45, W, hy * 0.55);
-  x.fillStyle = '#3f6f4c'; for (let px = -20; px < W + 40; px += 22 + R() * 26) { x.beginPath(); x.arc(px, hy + 2, 16 + R() * 22, Math.PI, 0); x.fill(); }
-  g = x.createLinearGradient(0, hy, 0, H); g.addColorStop(0, d.diet === 'plant' ? '#86b25c' : '#d2c092'); g.addColorStop(1, d.diet === 'plant' ? '#56893f' : '#a48d62'); x.fillStyle = g; x.fillRect(0, hy, W, H - hy);
+  x.fillStyle = env === 'desert' ? '#c9a46a' : env === 'rocky' ? '#7d7668' : '#3f6f4c'; for (let px = -20; px < W + 40; px += 22 + R() * 26) { x.beginPath(); x.arc(px, hy + 2, 16 + R() * 22, Math.PI, 0); x.fill(); }
+  if (env === 'forest') for (let px = -30; px < W + 60; px += 70 + R() * 50) { const h = 90 + R() * 70; x.fillStyle = '#5a3a20'; x.fillRect(px - 7, hy - h * 0.55, 14, h * 0.6); x.fillStyle = R() < 0.5 ? '#2c5e30' : '#356b37'; for (const [dx, dy, rr] of [[0, -h * 0.75, h * 0.32], [-h * 0.2, -h * 0.55, h * 0.24], [h * 0.2, -h * 0.58, h * 0.25]]) { x.beginPath(); x.arc(px + dx, hy + dy, rr, 0, TAU); x.fill(); } }
+  if (env === 'rocky') { x.fillStyle = '#8f887b'; x.beginPath(); x.moveTo(0, hy + 2); for (let i = 0; i <= 8; i++) x.lineTo(W * i / 8, hy - hy * (0.18 + 0.3 * R()) * (i % 2 ? 1 : 0.5)); x.lineTo(W, hy + 2); x.closePath(); x.fill(); }
+  g = x.createLinearGradient(0, hy, 0, H); g.addColorStop(0, EB[0]); g.addColorStop(1, EB[1]); x.fillStyle = g; x.fillRect(0, hy, W, H - hy);
   for (let i = 0; i < 26; i++) { const py = hy + 14 + R() * (H - hy), k = 0.5 + (py - hy) / (H - hy); x.fillStyle = R() < 0.5 ? 'rgba(255,255,220,.16)' : 'rgba(40,90,40,.12)'; x.beginPath(); x.ellipse(R() * W, py, (40 + R() * 110) * k, (8 + R() * 14) * k, 0, 0, TAU); x.fill(); }
   const carn = d.diet !== 'plant', sp = Math.max(70, W / 9); x.lineCap = 'round';
   for (const pass of [0, 1]) { x.beginPath(); for (const k of carn ? [16, 30, 44] : [20, 40]) { x.moveTo(-10, hy + 8 - k); x.lineTo(W + 10, hy + 8 - k); } x.strokeStyle = pass ? (carn ? '#e8edf0' : '#c58d4c') : OUT; x.lineWidth = pass ? (carn ? 4 : 8) : (carn ? 6.5 : 11); x.stroke(); }
   for (const pass of [0, 1]) { x.beginPath(); for (let px = sp * 0.4; px < W; px += sp) { x.moveTo(px, hy + 10); x.lineTo(px, hy - 46); } x.strokeStyle = pass ? (carn ? '#8d98a0' : '#a8713f') : OUT; x.lineWidth = pass ? 11 : 14.5; x.stroke(); }
-  x.strokeStyle = 'rgba(30,90,40,.5)'; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 40; i++) { const px = R() * W, py = hy + 24 + R() * (H - hy - 24), k = 6 + 10 * (py - hy) / (H - hy); x.moveTo(px - k, py - k * 1.2); x.lineTo(px, py); x.lineTo(px + k, py - k * 1.3); } if (!carn) x.stroke();
+  x.strokeStyle = 'rgba(30,90,40,.5)'; x.lineWidth = 3; x.beginPath(); for (let i = 0; i < 40; i++) { const px = R() * W, py = hy + 24 + R() * (H - hy - 24), k = 6 + 10 * (py - hy) / (H - hy); x.moveTo(px - k, py - k * 1.2); x.lineTo(px, py); x.lineTo(px + k, py - k * 1.3); } if (env === 'grass' || env === 'forest') x.stroke();
+  x.lineJoin = 'round'; x.lineCap = 'round';
+  if (env === 'swamp') { for (let i = 0; i < 6; i++) { const py = hy + 30 + R() * (H - hy - 40), k = 0.5 + (py - hy) / (H - hy), px = R() * W; x.fillStyle = 'rgba(70,150,150,.85)'; x.beginPath(); x.ellipse(px, py, (50 + R() * 60) * k, (10 + R() * 8) * k, 0, 0, TAU); x.fill(); x.fillStyle = 'rgba(255,255,255,.3)'; x.beginPath(); x.ellipse(px - 10 * k, py - 3 * k, 18 * k, 3 * k, 0, 0, TAU); x.fill(); }
+    x.strokeStyle = '#3c6b2c'; x.lineWidth = 4; for (let i = 0; i < 18; i++) { const px = R() * W, py = hy + 20 + R() * (H - hy - 20), h = 30 + R() * 30; x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + 4, py - h * 0.5, px + Math.sin(care.t + i) * 4, py - h); x.stroke(); x.fillStyle = '#7a4a26'; x.beginPath(); x.ellipse(px + Math.sin(care.t + i) * 4, py - h, 4, 10, 0, 0, TAU); x.fill(); } }
+  if (env === 'desert') { x.strokeStyle = 'rgba(176,136,70,.55)'; x.lineWidth = 4; for (let i = 0; i < 14; i++) { const px = R() * W, py = hy + 30 + R() * (H - hy - 30); x.beginPath(); x.arc(px, py + 40, 60 + R() * 40, Math.PI * 1.2, Math.PI * 1.8); x.stroke(); } }
+  if (env === 'rocky' || env === 'desert') for (let i = 0; i < (env === 'rocky' ? 9 : 4); i++) { const py = hy + 26 + R() * (H - hy - 40), k = 0.5 + (py - hy) / (H - hy), px = R() * W, r = (14 + R() * 22) * k; x.fillStyle = env === 'rocky' ? (R() < 0.5 ? '#8f887b' : '#a39b8b') : '#b4936a'; x.beginPath(); x.moveTo(px - r, py); x.quadraticCurveTo(px - r * 0.9, py - r * 0.9, px - r * 0.1, py - r); x.quadraticCurveTo(px + r * 0.9, py - r * 0.8, px + r, py); x.closePath(); x.fill(); x.strokeStyle = OUT; x.lineWidth = 3; x.stroke(); }
+  if (env === 'forest') for (let i = 0; i < 8; i++) { const px = R() * W, py = hy + 30 + R() * (H - hy - 30), k = 0.6 + (py - hy) / (H - hy); x.fillStyle = '#3a7a3a'; for (let f = -2; f <= 2; f++) { x.beginPath(); x.ellipse(px + f * 9 * k, py - 12 * k, 5 * k, 16 * k, f * 0.35, 0, TAU); x.fill(); } }
+  if (env === 'grass') { x.fillStyle = '#ffd93b'; for (let i = 0; i < 20; i++) { circ(x, R() * W, hy + 30 + R() * (H - hy - 30), 4); x.fill(); } }
 }
 function drawCareDino(x, G, mudA) {
   const c = care, e = c.e, d = e.def, s = G.s, hop = c.hop > 0 ? Math.sin(Math.PI * (1 - c.hop / 0.45)) * Math.min(120, 46 * s) : 0;
   let kx = 1, ky = 1; if (c.sq > 0) { const k = Math.sin(Math.PI * (1 - c.sq / 0.28)) * 0.12; kx = 1 + k; ky = 1 - k; }
   x.save(); x.translate(G.ox + (c.shake > 0 ? Math.sin(c.t * 60) * 7 : 0) + (c.roarT > 0 && !reduceMotion ? Math.sin(c.t * 70) * 2 : 0), G.oy - hop); x.scale(s * kx, s * ky);
   if (c.spin) { const cx = (G.box[0] + G.box[2]) / 2, cy = (G.box[1] + G.box[3]) / 2; x.translate(cx, cy); x.rotate(-c.spin); x.translate(-cx, -cy); }
-  const n = needsOf(e); CA.time = c.t + e.seed; CA.walk = 0.9; CA.amp = 0; CA.jaw = c.jaw; CA.nod = c.nod; CA.pitch = c.pitch; CA.held = false; CA.flap = c.flap; CA.blink = c.blinkT < 0; CA.sad = !c.act && (n.hungry || n.bored || n.dirty || n.hurt);
+  const n = needsOf(e); CA.time = c.t + e.seed; CA.walk = 0.9; CA.amp = 0; CA.jaw = c.jaw; CA.nod = c.nod; CA.pitch = c.pitch; CA.held = false; CA.flap = c.flap; CA.blink = c.blinkT < 0; CA.sad = !c.act && (n.hungry || n.bored || n.dirty || n.hurt || n.home);
   CA.headK = 1 + (1 - e.gk) * 0.6; CA.eyeK = 1 + (1 - e.gk) * 0.5; CA.ow = clamp(4.2 / s, 1.5, 9);
   let lx = 0.5, ly = 0; if (c.ptr) { const dx = c.ptr[0] - (G.ox + d.eye[0] * s), dy = c.ptr[1] - (G.oy + d.eye[1] * s), m = Math.hypot(dx, dy) || 1; lx = dx / m; ly = dy / m; } else if (c.food) { lx = 0.6; ly = 0.6; }
   CA.lx = lx; CA.ly = ly; CA.tex = true; if (d.fly) x.translate(0, -16);
@@ -1945,7 +2004,7 @@ function drawCareDino(x, G, mudA) {
   x.restore();
 }
 function renderCare() {
-  const c = care, e = c.e, d = e.def, G = careGeo(), x = cctx; x.setTransform(DPR, 0, 0, DPR, 0, 0); bgT = c.t; careBg(x, d, G);
+  const c = care, e = c.e, d = e.def, G = careGeo(), x = cctx; x.setTransform(DPR, 0, 0, DPR, 0, 0); bgT = c.t; careBg(x, d, G, e.pad ? e.pad.env : null);
   if (e.stage === 'egg') {
     const ey = d.swim ? G.gy + 46 : G.gy, es = Math.min(W * 0.4 / 44, (ey - 130) * 0.6 / 54), k = c.sq > 0 ? Math.sin(Math.PI * (1 - c.sq / 0.28)) * 0.1 : 0;
     x.drawImage(shadowImg, W / 2 - 34 * es, ey - 8 * es, 68 * es, 18 * es);
@@ -1957,6 +2016,7 @@ function renderCare() {
   const mudA = e.dirtyIn <= 0 ? 1 - c.scrub : 0;
   octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, careOff.width, careOff.height); octx.setTransform(DPR, 0, 0, DPR, 0, 0); drawCareDino(octx, G, mudA); x.drawImage(careOff, 0, 0, W, H);
   if (c.food) { const F = c.food, fs2 = clamp(G.s * 0.9, 1, 2.6) * Math.max(0.3, 1 - F.bites * 0.15); x.save(); x.translate(F.x, F.y); x.scale(fs2, fs2); DEF[F.type].draw(x, { time: c.t, ow: clamp(4 / fs2, 1.5, 6) }); x.restore(); }
+  if (needsOf(e).home && !c.act) { const r = clamp(G.s * 26, 30, 52), bx = clamp(G.ox + (G.box[0] + G.box[2]) / 2 * G.s + G.s * 30, r + 20, W - r - 20), by = Math.max(G.oy + G.box[1] * G.s - 50, 104 + r * 1.2); x.lineWidth = 3; x.strokeStyle = OUT; x.fillStyle = '#fff'; for (const [dx, dy, rr] of [[-r * 0.9, r * 1.25, r * 0.16], [-r * 0.55, r * 0.95, r * 0.24]]) { circ(x, bx + dx, by + dy, rr); x.fill(); x.stroke(); } circ(x, bx, by, r * 1.15); x.fill(); x.stroke(); x.save(); x.translate(bx, by + Math.sin(c.t * 3) * 3); drawEnvIcon(x, prefOf(e), r); x.restore(); }
   if (c.med && !c.med.done) { x.save(); x.translate(c.med.x, c.med.y); drawMed(x, clamp(G.s * 24, 20, 44)); x.restore(); }
   if (c.ball) { x.save(); x.translate(c.ball.x, c.ball.y); x.rotate(c.ball.rot); drawBall(x, c.ball.r); x.restore(); }
   for (const p of c.parts) drawPart(p, x);
@@ -1971,7 +2031,21 @@ careCv.addEventListener('pointermove', ev => {
 });
 const careUp = ev => { const c = care; if (!c) return; if (c.down && c.onDino && c.rubbed < 24) careRoar(); c.down = null; c.ptr = null; };
 careCv.addEventListener('pointerup', careUp); careCv.addEventListener('pointercancel', careUp);
-feedBtn.addEventListener('click', () => careDo('eat')); playBtn.addEventListener('click', () => careDo('play')); medBtn.addEventListener('click', () => careDo('med')); washBtn.addEventListener('click', () => careDo('wash'));
+feedBtn.addEventListener('click', () => careDo('eat')); playBtn.addEventListener('click', () => careDo('play'));
+function paintHome() { if (!care) return; const e = care.e; homeBtn.hidden = !!e.def.swim; if (!homeBtn.hidden) paintIcon(homeBtn.firstElementChild, (c, r) => drawEnvIcon(c, e.pad ? e.pad.env : null, r * 1.25)); }
+homeBtn.addEventListener('click', () => {   // show the five habitats to choose from
+  if (!care || care.act || care.e.stage === 'egg') return; ac(); sfx.pick(); document.getElementById('careBar').hidden = true; envRow.hidden = false;
+  envRow.querySelectorAll('button').forEach(b => { paintIcon(b.firstElementChild, (c, r) => drawEnvIcon(c, b.dataset.env, r * 1.25)); b.classList.toggle('on', !!care.e.pad && care.e.pad.env === b.dataset.env); });
+});
+envRow.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  const c = care; if (!c) return; const e = c.e, pad = e.pad, env = b.dataset.env, G = careGeo(), mid = [G.ox + (G.box[0] + G.box[2]) / 2 * G.s, G.oy + (G.box[1] + G.box[3]) / 2 * G.s];
+  const before = pad.dinos.map(d => homeOk(d)); pad.env = env; dirty(); envRow.hidden = true; document.getElementById('careBar').hidden = false; paintHome();
+  pad.dinos.forEach((d, i) => { if (!before[i] && homeOk(d)) d.needIn = gapOf(d); });
+  cpuff(W / 2, H * 0.55, 'circle', 26, { cols: ['rgba(255,255,255,.9)', ENVS[env].pad], v0: 120, v1: 420, s0: 8, s1: 18, t0: 0.5, t1: 0.9, grow: 1, r: W * 0.3 });
+  if (homeOk(e) && env === prefOf(e)) { c.hop = 0.45; sfx.grow(); say(e.def.name + ' loves the ' + ENVS[env].name.toLowerCase()); cpuff(mid[0], G.oy + G.box[1] * G.s, 'heart', 8, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 170, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 }); cpuff(mid[0], mid[1], 'star', 18, { cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 140, v1: 420, s0: 10, s1: 18, t0: 0.6, t1: 1.1 }); }
+  else if (homeOk(e)) { sfx.yay(); }
+  else { c.shake = 0.5; sfx.boing(); careNeedsEl.textContent = 'Not this one! It wants a ' + ENVS[prefOf(e)].name.toLowerCase(); }
+})); medBtn.addEventListener('click', () => careDo('med')); washBtn.addEventListener('click', () => careDo('wash'));
 document.getElementById('careClose').addEventListener('click', closeCare);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeCare(); });
 
@@ -2305,7 +2379,7 @@ function drawCup(x, cx, cy, k) {
 function rrect(x, a, b, w, h, r) { x.beginPath(); x.moveTo(a + r, b); x.arcTo(a + w, b, a + w, b + h, r); x.arcTo(a + w, b + h, a, b + h, r); x.arcTo(a, b + h, a, b, r); x.arcTo(a, b, a + w, b, r); x.closePath(); }
 function renderDuel() {
   const D = duel, x = dctx; x.setTransform(DPR, 0, 0, DPR, 0, 0);
-  bgT = D.t; careBg(x, D.f[0].d, { gy: D.gy });
+  bgT = D.t; careBg(x, D.f[0].d, { gy: D.gy }, (D.f[0].e.pad && D.f[0].e.pad.env) || 'grass');
   for (const F of D.f) if (!F.d.swim) { const w = (F.box[2] - F.box[0]) * F.s; x.globalAlpha = F.air ? 0.5 : 1; x.drawImage(shadowImg, F.cx + F.off + F.kx - w * 0.62, D.gy - w * 0.15, w * 1.24, w * 0.34); x.globalAlpha = 1; }
   octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, careOff.width, careOff.height); octx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const order = D.end ? [D.end.lose, D.end.win] : D.mv ? [D.mv.B, D.mv.A] : D.f, shx = !reduceMotion && D.shakeT > 0 ? Math.sin(D.t * 75) * 5 * Math.min(1, D.shakeT / 0.2) : 0;
@@ -2563,7 +2637,7 @@ function dirty() { saveT = 0.6; edits++; pending = true; stateTs = Date.now(); i
 function settle() { saveT = 0; cloudT = 0; edits = 0; pending = false; markSave(); }
 function serialize() {
   return { v: 2, n: N, ts: stateTs, snd: soundOn, fnd: [...unlocked], tiles: Array.from(tiles).join(''),
-    objs: objs.filter(o => !o.gone).map(o => { const g = o.held && o.orig ? o.orig : [o.gx, o.gy]; return o.kind === 'pad' ? { p: o.style, n: o.n, x: g[0], y: g[1], d: o.dinos.map(d => ({ t: d.type, s: d.stage, u: +d.u.toFixed(2), v: +d.v.toFixed(2), h: Math.round(d.hungryIn), p: Math.round(d.playIn), c: Math.round(d.dirtyIn), k: d.taps || 0, m: d.hurt ? 1 : 0, n: Math.round(d.needIn) })) } : { t: o.type, x: g[0], y: g[1] }; }),
+    objs: objs.filter(o => !o.gone).map(o => { const g = o.held && o.orig ? o.orig : [o.gx, o.gy]; return o.kind === 'pad' ? { p: o.style, n: o.n, x: g[0], y: g[1], e: o.env || null, d: o.dinos.map(d => ({ t: d.type, s: d.stage, u: +d.u.toFixed(2), v: +d.v.toFixed(2), h: Math.round(d.hungryIn), p: Math.round(d.playIn), c: Math.round(d.dirtyIn), k: d.taps || 0, m: d.hurt ? 1 : 0, n: Math.round(d.needIn) })) } : { t: o.type, x: g[0], y: g[1] }; }),
     movers: movers.map(m => ({ t: m.type, x: Math.floor(m.gx), y: Math.floor(m.gy), c: m.col })) };
 }
 function save() { try { const d = serialize(); localStorage.setItem(KEY, JSON.stringify(d)); hadLocal = true; } catch (e) {} if (!cloud) { pending = false; markSave(); } }
@@ -2642,7 +2716,7 @@ function load(d) {
   const srcN = typeof d.tiles === 'string' && d.tiles.length ? Math.round(Math.sqrt(d.tiles.length)) : (d.n || N), off = Math.max(0, Math.floor((N - srcN) / 2));
   for (let o of d.objs || []) {
     o = { ...o, x: o.x + off, y: o.y + off };
-    if (o.p) { const ds = (o.d || []).filter(k => DEF[k.t] && DEF[k.t].cat === 'dino'); if (!ds.length || !ok(o.x, o.y, o.n === 2 ? 2 : 3)) continue; const pad = mkPad(ds[0].t, o.x, o.y, PADCOL[o.p] ? o.p : undefined); pad.n = o.n === 2 ? 2 : 3; setOcc(pad, true); pad.sq = 0; for (const k of ds) { const e = mkDino(k.t, pad, [0, 1, 2].includes(k.s) ? k.s : 'egg', k.u, k.v); if (e.def.fly && e.stage !== 'egg') e.alt = 90; if (Number.isFinite(k.h)) e.hungryIn = k.h; if (Number.isFinite(k.p)) e.playIn = k.p; if (Number.isFinite(k.c)) e.dirtyIn = k.c; if (Number.isFinite(k.k)) e.taps = clamp(k.k, 0, 9); if (k.m) e.hurt = true; if (Number.isFinite(k.n)) e.needIn = k.n; if (e.stage !== 'egg') normNeeds(e); } }
+    if (o.p) { const ds = (o.d || []).filter(k => DEF[k.t] && DEF[k.t].cat === 'dino'); if (!ds.length || !ok(o.x, o.y, o.n === 2 ? 2 : 3)) continue; const pad = mkPad(ds[0].t, o.x, o.y, PADCOL[o.p] ? o.p : undefined); pad.n = o.n === 2 ? 2 : 3; pad.env = ENVS[o.e] ? o.e : null; setOcc(pad, true); pad.sq = 0; for (const k of ds) { const e = mkDino(k.t, pad, [0, 1, 2].includes(k.s) ? k.s : 'egg', k.u, k.v); if (e.def.fly && e.stage !== 'egg') e.alt = 90; if (Number.isFinite(k.h)) e.hungryIn = k.h; if (Number.isFinite(k.p)) e.playIn = k.p; if (Number.isFinite(k.c)) e.dirtyIn = k.c; if (Number.isFinite(k.k)) e.taps = clamp(k.k, 0, 9); if (k.m) e.hurt = true; if (Number.isFinite(k.n)) e.needIn = k.n; if (e.stage !== 'egg') normNeeds(e); } }
     else if (FOOT[o.t] && ok(o.x, o.y, FOOT[o.t][0])) mkProp(o.t, o.x, o.y, 0);
   }
   if (typeof d.tiles === 'string' && srcN <= N && d.tiles.length === srcN * srcN) for (let y = 0; y < srcN; y++) for (let x = 0; x < srcN; x++) { const i = ti(x + off, y + off), c = d.tiles[y * srcN + x]; if (!occ[i]) tiles[i] = c === '1' ? 1 : c === '2' ? 2 : 0; }
