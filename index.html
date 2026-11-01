@@ -68,6 +68,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
   display:grid;place-items:center;
 }
 .mini svg{width:52%;height:52%;display:block}
+#mv[aria-pressed="true"]{background:var(--sun);transform:translateY(3px);animation:rmPulse .9s ease-in-out infinite}
 .mini.pending::after{content:'';position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:var(--sun);border:2.5px solid var(--ink)}
 #ask{position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(10,30,40,.6)}
 #bk{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:16px;background:rgba(10,30,40,.6)}
@@ -192,7 +193,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 .cbtn.need::after{content:'';position:absolute;top:-10px;right:-10px;width:22px;height:22px;border-radius:50%;background:var(--hot);border:3px solid var(--ink)}
 @keyframes wantPulse{50%{transform:scale(1.07)}}
 @media (prefers-reduced-motion:reduce){.cbtn.need{animation:none}}
-@media (max-width:1100px){#name{top:calc(clamp(44px, 6vw, 56px) + 26px);max-width:calc(100% - var(--b)*2 - 40px)}}
+@media (max-width:1400px){#name{top:calc(clamp(44px, 6vw, 56px) + 26px);max-width:calc(100% - var(--b)*2 - 40px)}}
 @media (prefers-reduced-motion:reduce){#name{animation:none}}
 </style>
 
@@ -209,6 +210,9 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
     </button>
     <button id="clr" class="mini" type="button" aria-label="Hold to clear the island" title="Hold to clear the island">
       <svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M9.5 7V4.5h5V7M7 7l1 12.5h8L17 7M10.5 10.5v6M13.5 10.5v6"/></svg><i></i>
+    </button>
+    <button id="mv" class="mini" type="button" aria-label="Move things" aria-pressed="false" title="Move things">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg>
     </button>
     <button id="zout" class="mini" type="button" aria-label="Zoom out" title="Zoom out">
       <svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="3" stroke-linecap="round"><path d="M6 12h12"/></svg>
@@ -1308,6 +1312,7 @@ const objs = [], dinos = [], movers = [], foods = [], parts = [], flowers = [], 
 let nid = 1, saveT = 0, lastPtr = null, paint = null, ghost = null;
 let needT = 0;
 let placing = null;   // a tray item that has been picked and is waiting for a tap on the island
+let moving = false;   // the arrows button: only then can paddocks, buildings and people be dragged around
 let removing = false;   // the red button: the next thing tapped is taken off the island
 let Q = 0, inland = false;   // Q: 0 full detail, 1 lighter effects, 2 also lower resolution; steps down by itself if frames run slow
 const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1927,7 +1932,7 @@ function moveGhost(d, px, py) {
     if (def.cat === 'dino') { const tx = Math.floor(g[0]), ty = Math.floor(g[1]); if (inB(tx, ty) && occ[ti(tx, ty)]) { const o = objs.find(o => o.id === occ[ti(tx, ty)]); if (o && canJoin(o, type)) { ghost.join = o; ghost.ok = true; } } }
   }
 }
-function noRoom() { sfx.boing(); banner('No room there', 'Drag things onto the tray to clear a space', 2600); }
+function noRoom() { sfx.boing(); banner('No room there', 'Tap the arrows button, then drag things onto the tray to clear a space', 2600); }
 function placeNew(type, gx, gy, drop) {
   const def = DEF[type];
   if (def.cat === 'dino') { const pad = mkPad(type, gx, gy), e = mkDino(type, pad); e.drop = drop ? 260 : 0; const c = ocenter(pad); dust(c[0], c[1]); sfx.pop(); ensureVisible(c[0], c[1]); return pad; }
@@ -1949,7 +1954,7 @@ function moveDrag(id, px, py) {
   const d = drags.get(id); if (!d) return; const w = s2w(px, py); lastPtr = { x: w[0], y: w[1], t: time };
   if (d.mode === 'paint') { paintLine(d.lx, d.ly, px, py); d.lx = px; d.ly = py; return; }
   if (d.mode === 'pinch') return;
-  if (!d.moved && Math.hypot(px - d.sx, py - d.sy) > 10) { d.moved = true; if (d.place) ghost = null; if (d.spawn) d.mode = 'new'; else if (d.t && !removing && !picking) { pickup(d); d.mode = 'obj'; } else d.mode = 'pan'; }
+  if (!d.moved && Math.hypot(px - d.sx, py - d.sy) > 10) { d.moved = true; if (d.place) ghost = null; if (d.spawn) d.mode = 'new'; else if (d.t && moving && !removing && !picking) { pickup(d); d.mode = 'obj'; } else d.mode = 'pan'; }
   if (d.mode === 'pan') { cam.x -= (px - d.lx) / cam.z; cam.y -= (py - d.ly) / cam.z; clampCam(); }
   else if (d.mode === 'new') moveGhost(d, px, py);
   else if (d.mode === 'obj') {
@@ -2049,7 +2054,7 @@ const TABS = [
 ];
 let curTab = 0; const iconJobs = [];
 function markTray() { trayEl.querySelectorAll('.item').forEach(b => { const on = (paint && b.id === 'item-' + paint) || (placing && b.id === 'item-' + placing); b.classList.toggle('on', !!on); if (DEF[b.id.slice(5)].cat === 'paint') b.setAttribute('aria-pressed', on ? 'true' : 'false'); }); trayEl.classList.toggle('picking', !!placing); if (W) trayTop = document.getElementById('dock').getBoundingClientRect().top - app.getBoundingClientRect().top; }
-function setPaint(k) { paint = paint === k ? null : k; if (paint) { setPicking(false); setRemoving(false); placing = null; } markTray(); if (paint) banner(PAINT[paint].hint, 'Tap the button again to stop', 2600); }
+function setPaint(k) { paint = paint === k ? null : k; if (paint) { setPicking(false); setRemoving(false); setMoving(false); placing = null; } markTray(); if (paint) banner(PAINT[paint].hint, 'Tap the button again to stop', 2600); }
 function setPlacing(k) { placing = k && placing !== k ? k : null; if (placing) { paint = null; setPicking(false); setRemoving(false); banner(DEF[placing].name, 'Now tap the island where you want it', 3600); } markTray(); }
 function buildTabs() {
   TABS.forEach((t, i) => {
@@ -2097,7 +2102,7 @@ document.getElementById('roar').addEventListener('click', () => {
 const rmBtn = document.getElementById('rm');
 function setRemoving(on) {
   if (on === removing) return; if (on && picking) setPicking(false); if (on && paint) setPaint(paint); if (on && placing) { placing = null; markTray(); }
-  removing = on; rmBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (on && moving) setMoving(false); removing = on; rmBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   if (on) banner('Tap a paddock to remove it', 'Tap the red button again to cancel', 3200);
 }
 function removeHit(t) {
@@ -2107,6 +2112,9 @@ function removeHit(t) {
   sfx.poof(); setRemoving(false);
 }
 rmBtn.addEventListener('click', () => { ac(); setRemoving(!removing); sfx.pick(); });
+const mvBtn = document.getElementById('mv');
+function setMoving(on) { if (on === moving) return; moving = on; mvBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); if (on) { if (removing) setRemoving(false); if (paint) setPaint(paint); banner('Drag things to move them', 'Tap the arrows again when you are done', 3200); } }
+mvBtn.addEventListener('click', () => { ac(); setMoving(!moving); sfx.pick(); });
 document.getElementById('zin').addEventListener('click', () => { ac(); zoomAt(W / 2, cy0, 1.35); sfx.pick(); });
 document.getElementById('zout').addEventListener('click', () => { ac(); zoomAt(W / 2, cy0, 1 / 1.35); sfx.pick(); });
 const sndBtn = document.getElementById('snd');
