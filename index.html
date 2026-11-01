@@ -393,7 +393,7 @@ function pose(sp, a) {
     let fx = L.hip[0] + L.fo + Math.cos(ph) * L.stride * a.amp, fy = -Math.max(0, -Math.sin(ph)) * L.lift * a.amp - L.r[2];
     if (kck && L.hip[0] > hipx + 4) { fx += kck * 38; fy -= kck * 34; }
     if (a.held) { fx = L.hip[0] + L.fo + Math.sin(a.time * 10 + L.ph) * 8; fy = 5 - L.r[2]; }
-    if (SHADE3D && sp.near.length === 1 && !a.held && !sp.fly) {
+    if ((SHADE3D || GAMEART) && sp.near.length === 1 && !a.held && !sp.fly) {
       const mt = L.l2 * 0.62, ax = fx - mt * 0.4, ay = fy - mt * 0.9, kk = ik(L.hip[0], hy2, L.l1 * 0.92, L.l2 * 0.8, ax, ay, L.bend);
       return {
         limb: catmull([[L.hip[0], hy2, L.r[0] * 1.18], [kk[0], kk[1], L.r[1] * 0.95], [kk[2], kk[3], L.r[2] * 0.72], [fx, fy, L.r[2] * 0.62]], 4),
@@ -421,7 +421,24 @@ function mix(h1, h2, t) { const a = parseInt(h1.slice(1), 16), b = parseInt(h2.s
 const skinTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 72; const x = c.getContext('2d'), R = mulberry(9); for (let i = 0; i < 250; i++) { x.fillStyle = R() < 0.62 ? 'rgba(20,14,8,' + (0.1 + R() * 0.17) + ')' : 'rgba(255,248,225,' + (0.08 + R() * 0.12) + ')'; x.beginPath(); x.ellipse(R() * 72, R() * 72, 0.8 + R() * 2.2, 0.6 + R() * 1.6, R() * 3, 0, TAU); x.fill(); } return c; })();
 const skinPat = new WeakMap();
 /* sculpted look: soft rounded light and shadow across every body part, a cool rim light, shadow where limbs meet the body, and embossed scales */
-let SHADE3D = true;
+let SHADE3D = true, GAMEART = false;
+const GAME_C = { trex: { base: '#d8463a', dark: '#8f2620', belly: '#f3dcb6' } };
+function gameC(sp) { const o = { ...sp.c, ...(GAME_C[sp.id] || {}) }; o.far = shade(o.base, -0.32); o.hi = shade(o.base, 0.3); o.h1 = shade(o.base, 0.14); o.lo = shade(o.base, -0.26); o.line = shade(o.base, -0.7); o.mid = mix(o.base, o.belly, 0.72); return o; }
+function gameArt(ctx, sp, g, a) {
+  const d = g.dense, n = d.length, c = sp.c, R = mulberry(sp.id.length * 31 + 7);
+  ctx.save(); ctx.beginPath(); tube(ctx, d, 0); ctx.clip();
+  fillTubes(ctx, [offT(d, 0.86, 0.2)], 0, 'rgba(90,30,30,.2)');   // a crisp shadow along the underside
+  fillTubes(ctx, [offT(d, -0.72, 0.2, Math.floor(n * 0.05))], 0, 'rgba(255,235,210,.28)');   // and a bright band along the back
+  for (let i = 3; i < n - 3; i += 2) { const p = d[i], r = p[2], nn = nrm(d, i); if (r < 4) continue; for (let k = 0; k < 3; k++) { const v = -0.85 + R() * 0.9, x = p[0] + nn[0] * r * v + (R() - 0.5) * 6, y = p[1] + nn[1] * r * v + (R() - 0.5) * 6; ctx.fillStyle = R() < 0.6 ? 'rgba(90,20,20,.22)' : 'rgba(255,220,200,.2)'; circ(ctx, x, y, 0.6 + R() * 1.1); ctx.fill(); } }
+  ctx.restore();
+  const sk = g.skullD; for (let i = 1; i < sk.length - 2; i += 2) { const p = sk[i], nn = nrm(sk, i), x = p[0] - nn[0] * p[2] * 0.92, y = p[1] - nn[1] * p[2] * 0.92, r = Math.max(0.8, p[2] * 0.09); circ(ctx, x, y, r); ctx.fillStyle = c.lo; ctx.fill(); }   // knobbly scales on top of the head
+  for (let i = Math.floor(n * 0.62); i < n - 1; i += 3) { const p = d[i], nn = nrm(d, i), x = p[0] - nn[0] * p[2] * 0.95, y = p[1] - nn[1] * p[2] * 0.95, r = Math.max(0.8, p[2] * 0.07); circ(ctx, x, y, r); ctx.fillStyle = c.lo; ctx.fill(); }
+}
+function gameSocks(ctx, list, c) {   // lower legs and feet fade to a dark slate colour
+  for (const L of list) { const lb = L.limb, k = lb[Math.floor(lb.length * 0.55)], f = L.foot[1];
+    ctx.save(); ctx.beginPath(); for (const t of [lb, L.foot]) tube(ctx, t, 0); ctx.clip();
+    const gr = ctx.createLinearGradient(0, k[1] - k[2], 0, f[1]); gr.addColorStop(0, 'rgba(70,64,96,0)'); gr.addColorStop(0.45, 'rgba(70,64,96,.75)'); gr.addColorStop(1, 'rgba(58,52,80,.95)'); ctx.fillStyle = gr; ctx.fillRect(f[0] - 200, k[1] - k[2], 400, f[1] - k[1] + k[2] + 40); ctx.restore(); }
+}
 const scaleTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 56; const x = c.getContext('2d'), R = mulberry(21);
   for (let i = 0; i < 160; i++) { const px = R() * 56, py = R() * 56, r = 1.1 + R() * 1.3; for (const [dx, dy] of [[0, 0], [56, 0], [-56, 0], [0, 56], [0, -56]]) { x.beginPath(); x.arc(px + dx, py + dy, r, Math.PI * 0.85, Math.PI * 1.85); x.strokeStyle = 'rgba(255,250,230,.16)'; x.lineWidth = 0.9; x.stroke(); x.beginPath(); x.arc(px + dx, py + dy, r, Math.PI * 1.85, Math.PI * 2.85); x.strokeStyle = 'rgba(15,10,6,.18)'; x.stroke(); } }
   return c; })();
@@ -504,6 +521,10 @@ function sculptLimbs(ctx, sp, g, a, list) {
   }
 }
 function drawEye(ctx, x, y, r, a, sp) {
+  if (GAMEART && !a.blink) { r *= 0.6; circ(ctx, x, y, r * 1.2); ctx.fillStyle = '#fff8ec'; ctx.fill(); ctx.strokeStyle = sp.c.line; ctx.lineWidth = Math.max(0.6, r * 0.18); ctx.stroke();
+    const ir = ctx.createRadialGradient(x, y + r * 0.2, r * 0.1, x, y, r * 0.95); ir.addColorStop(0, '#7fd0ff'); ir.addColorStop(1, '#1f5fb8'); circ(ctx, x + a.lx * r * 0.15, y, r * 0.85); ctx.fillStyle = ir; ctx.fill();
+    circ(ctx, x + a.lx * r * 0.2, y, r * 0.42); ctx.fillStyle = '#0c1020'; ctx.fill(); circ(ctx, x - r * 0.25, y - r * 0.35, r * 0.22); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * 1.25, Math.PI * 1.1, Math.PI * 1.9); ctx.lineTo(x + r * 1.3, y - r * 0.6); ctx.closePath(); ctx.fillStyle = sp.c.lo; ctx.fill(); return; }
   if (SHADE3D) {
     r *= 0.5; const c = sp.c;
     circ(ctx, x, y, r * 1.35); ctx.fillStyle = 'rgba(25,16,10,.75)'; ctx.fill();
@@ -533,7 +554,7 @@ function desat(col) {
   const L = 0.3 * r + 0.59 * g + 0.11 * b, k = 0.3; r = (r + (L - r) * k) * 0.93; g = (g + (L - g) * k) * 0.93; b = (b + (L - b) * k) * 0.93; const h2 = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'); return '#' + h2(r) + h2(g) + h2(b);   // hex, so other colour helpers can keep mixing it
 }
 function realC(sp) { let o = realCols.get(sp); if (!o) { o = {}; for (const k in sp.c) o[k] = typeof sp.c[k] === 'string' ? desat(sp.c[k]) : sp.c[k]; realCols.set(sp, o); } return o; }
-function drawDino(ctx, sp, a) { if (!SHADE3D) return drawDino0(ctx, sp, a); const keep = sp.c; sp.c = realC(sp); try { drawDino0(ctx, sp, a); } finally { sp.c = keep; } }
+function drawDino(ctx, sp, a) { if (GAMEART) { const keep = sp.c, hk = a.headK; sp.c = gameC(sp); a.headK = (hk || 1) * 1.12; try { drawDino0(ctx, sp, a); } finally { sp.c = keep; a.headK = hk; } return; } if (!SHADE3D) return drawDino0(ctx, sp, a); const keep = sp.c; sp.c = realC(sp); try { drawDino0(ctx, sp, a); } finally { sp.c = keep; } }
 
 /* ============ current science: feathers, lips, a paddle tail, big claws ============ */
 const FEATHERED = { raptor: 'wing', galli: 'wing', theri: 'wing', compy: 'fuzz' }, FUZZY = { ptera: 1, quetz: 1, dimorph: 1 }, NO_LIPS = { ichthy: 1, dimorph: 1 };
@@ -584,12 +605,12 @@ function accFront(ctx, sp, g, a) {
   }
 }
 function drawDino0(ctx, sp, a) {
-  const c = sp.c; a.line = c.line; a.ow *= SHADE3D && a.fine !== false ? 0.3 : 0.8;   // sculpted bodies need only a fine edge
+  const c = sp.c; a.line = c.line; a.ow *= GAMEART ? 0.45 : SHADE3D && a.fine !== false ? 0.3 : 0.8;   // sculpted bodies need only a fine edge
   const g = pose(sp, a), ow = a.ow, soft = !Q || !!a.closeUp, fine = soft && a.fine !== false;   // close-ups always get full detail   // the finest shading layers are skipped when a dinosaur is small on screen
   const off = (d, k, rk, i0 = 0) => { const out = []; for (let i = i0; i < d.length; i++) { const p = d[i], nn = nrm(d, i); out.push([p[0] + nn[0] * p[2] * k, p[1] + nn[1] * p[2] * k, Math.max(0.6, p[2] * rk)]); } return out; };
   const far = []; for (const L of g.far) far.push(L.limb, L.foot);
   if (g.farArm) far.push(g.farArm);
-  if (far.length) { fillTubes(ctx, far, ow, c.line); fillTubes(ctx, far, 0, c.far); }
+  if (far.length) { fillTubes(ctx, far, ow, c.line); fillTubes(ctx, far, 0, c.far); if (GAMEART) gameSocks(ctx, g.far, c); }
   if (sp.back) sp.back(ctx, g, sp, a);
   if (SHADE3D) accBack(ctx, sp, g, a);
   fillTubes(ctx, [g.dense, g.skullD, g.jawD], ow, c.line);
@@ -611,13 +632,14 @@ function drawDino0(ctx, sp, a) {
   if (fine) fillTubes(ctx, [off(d, 0.72, 0.27, b0)], 0, 'rgba(34,26,20,.13)'); if (soft) fillTubes(ctx, [off(d, 0.87, 0.14, b0)], 0, 'rgba(34,26,20,.2)');
   }
   if (sp.marks) sp.marks(ctx, g, sp, a);
+  if (GAMEART) gameArt(ctx, sp, g, a);
   if (SHADE3D && fine) sculptBody(ctx, sp, g, a);
   if (SHADE3D) accCoat(ctx, sp, g, a);
   if (sp.mid) { sp.mid(ctx, g, sp, a); fillTubes(ctx, [sk, jw], ow, c.line); mouthIn(); headFill(); }
   ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.8, ow * 0.8); ctx.lineCap = 'round'; ctx.beginPath();
   for (let i = 0; i < jw.length; i++) { const p = jw[i], nn = nrm(jw, i), x = p[0] - nn[0] * p[2], y = p[1] - nn[1] * p[2]; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
   ctx.stroke();
-  if (sp.teeth && !(SHADE3D && sp.lips && a.jaw < 0.3)) {
+  if (sp.teeth && !(SHADE3D && !GAMEART && sp.lips && a.jaw < 0.3)) {
     ctx.fillStyle = '#f4ecd2'; const th = 5 * g.hk;
     for (let i = Math.floor(sk.length * 0.38); i < sk.length; i += 2) {
       const p = sk[i], nn = nrm(sk, i), tx = nn[1], ty = -nn[0], bx = p[0] + nn[0] * p[2] * 0.82, by = p[1] + nn[1] * p[2] * 0.82;
@@ -629,11 +651,12 @@ function drawDino0(ctx, sp, a) {
   const near = []; for (const L of g.near) near.push(L.limb, L.foot);
   if (near.length) {
     fillTubes(ctx, near, ow, c.line); fillTubes(ctx, near, 0, c.base);
+    if (GAMEART) gameSocks(ctx, g.near, c);
     if (SHADE3D && fine) sculptLimbs(ctx, sp, g, a, g.near); else { if (soft) fillTubes(ctx, g.near.map(L => off(L.limb, 0.34, 0.44)), 0, c.h1); if (fine) fillTubes(ctx, g.near.map(L => off(L.limb, -0.6, 0.26)), 0, 'rgba(34,26,20,.16)'); }
     if (SHADE3D && fine) drawClaws(ctx, g.near); else { ctx.fillStyle = '#3d352c';
     for (const L of g.near) { const f = L.foot[1], r = f[2]; for (let k = 0; k < 3; k++) { circ(ctx, f[0] + r * 0.7 - k * r * 0.62, f[1] + r * 0.62, r * 0.2); ctx.fill(); } } }
   }
-  if (a.tex && soft && !(SHADE3D && fine)) {
+  if (a.tex && soft && !GAMEART && !(SHADE3D && fine)) {
     let p = skinPat.get(ctx); if (!p) { p = ctx.createPattern(skinTex, 'repeat'); skinPat.set(ctx, p); }
     ctx.save(); ctx.beginPath(); tube(ctx, d, 0); tube(ctx, sk, 0); tube(ctx, jw, 0); for (const t of near) tube(ctx, t, 0); if (g.arm) tube(ctx, g.arm, 0); ctx.clip();
     const b = sp.box; ctx.fillStyle = p; ctx.fillRect(b[0] - 260, b[1] - 260, b[2] - b[0] + 520, b[3] - b[1] + 520); ctx.restore();
@@ -702,10 +725,10 @@ function species(id, o) { o.id = id; o.cat = 'dino'; o.c.far = shade(o.c.base, -
 
 species('trex', { name: 'Tyrannosaurus rex', diet: 'meat', size: 1, speed: 55, fierce: true, teeth: true, big: true, eatPitch: 0.5,
   c: { base: '#c9682f', dark: '#8a3c1a', belly: '#f6dba6' }, voice: { kind: 'roar', f: 70, d: 1.45, vol: 0.62 },
-  spine: [[-158, -84, 3], [-110, -86, 11], [-62, -92, 22], [-18, -100, 33], [28, -108, 31], [56, -130, 23]], neck: 4,
-  skull: [[64, -150, 24], [98, -152, 20], [128, -147, 14]], jaw: [[70, -136, 11], [100, -132, 10], [122, -132, 7]], hinge: [62, -140], eye: [84, -162, 7.5],
-  ...biped(-10, -84, 48, 46, [20, 12, 8], 26), arm: [[40, -98, 7], [54, -86, 5], [62, -90, 4]],
-  box: [-165, -185, 150, 6], marks(ctx, g, sp) { stripes(ctx, g, sp); } });
+  spine: [[-176, -112, 2], [-128, -114, 10], [-78, -118, 22], [-28, -122, 36], [18, -126, 34], [46, -144, 25], [56, -160, 22]], neck: 5,
+  skull: [[64, -174, 29], [96, -174, 25], [128, -168, 18], [152, -160, 11]], jaw: [[70, -150, 14.5], [102, -146, 13], [132, -144, 9.5], [148, -144, 6]], hinge: [62, -158], eye: [86, -182, 5.5],
+  ...biped(-10, -106, 60, 56, [25, 13.5, 9], 23), arm: [[40, -124, 6.5], [52, -112, 4.2], [60, -116, 3.2]],
+  box: [-180, -205, 168, 6], marks(ctx, g, sp) { stripes(ctx, g, sp); } });
 
 species('spino', { name: 'Spinosaurus', diet: 'meat', size: 1.06, speed: 50, fierce: true, teeth: true, big: true, eatPitch: 0.4,
   c: { base: '#a8456b', dark: '#6c2646', belly: '#f6d2c0', accent: '#f4a53a' }, voice: { kind: 'roar', f: 84, d: 1.3, vol: 0.58 },
@@ -2018,7 +2041,7 @@ function selectTab(i) {
 function drawIcons() {
   for (const t of TABS) if (t.cv) fitIcon(t.cv, t.icon, { fill: 0.8 });
   for (const [c, types] of iconJobs) { fitIcon(c, types); if (types.length === 1 && isLocked(types[0])) lockIcon(c); }
-  const rc = document.querySelector('#roar canvas'); if (rc) fitIcon(rc, ['trex'], { box: [36, -206, 150, -96], fill: 1, pose: { jaw: 1, nod: -0.2, amp: 0 } });
+  const rc = document.querySelector('#roar canvas'); if (rc) fitIcon(rc, ['trex'], { box: [44, -212, 176, -122], fill: 1, pose: { jaw: 1, nod: -0.2, amp: 0 } });
   const bc = document.querySelector('#bat canvas'); if (bc) paintIcon(bc, drawVs);
   const dc = document.querySelector('#dig canvas'); if (dc) paintIcon(dc, drawDigIcon);
 }
@@ -2336,7 +2359,7 @@ function drawHorn(c, r) {
 function drawVs(c, r) {
   const s = r * 1.5 / 114;
   for (const side of [-1, 1]) {
-    c.save(); c.translate(side * r * 0.82, r * 0.16); c.scale(-side * s, s); c.translate(-93, 151); c.beginPath(); c.rect(24, -222, 140, 140); c.clip();
+    c.save(); c.translate(side * r * 0.82, r * 0.16); c.scale(-side * s, s); c.translate(-110, 167); c.beginPath(); c.rect(36, -228, 152, 152); c.clip();
     drawThing(c, 'trex', { ...A0, jaw: 0.5, nod: -0.1, amp: 0, ow: clamp(2.2 / s, 2, 9), shake: 0, flare: 0, spin: 0.6, cheer: 0, moving: false, e: null }); c.restore();
   }
   c.lineJoin = 'round'; c.lineWidth = Math.max(2, r * 0.08); c.strokeStyle = OUT;
@@ -2347,7 +2370,7 @@ function paintDuelIcons() {
   if (!duel) return;
   duel.kit[0].forEach((k, i) => {
     const b = dBtns[i], cv = b.firstElementChild; b.setAttribute('aria-label', MOVE_NAME[k]); b.title = MOVE_NAME[k];
-    if (k === 'roar') fitIcon(cv, ['trex'], { box: [36, -206, 150, -96], fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); else paintIcon(cv, MOVE_ICON[k]);
+    if (k === 'roar') fitIcon(cv, ['trex'], { box: [44, -212, 176, -122], fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); else paintIcon(cv, MOVE_ICON[k]);
   });
   if (!dAgainBtn.hidden) paintIcon(dAgainBtn.firstElementChild, drawAgain);
   if (!dMedBtn.hidden) paintIcon(dMedBtn.firstElementChild, drawMed);
@@ -3122,7 +3145,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
