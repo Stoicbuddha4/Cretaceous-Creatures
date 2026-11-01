@@ -2340,6 +2340,13 @@ const dBtns = ['duelM0', 'duelM1', 'duelM2'].map(id => document.getElementById(i
 let picking = null;   // the orange button: the next two dinosaurs tapped will battle
 let duel = null, bgT = 0; const DA = { ...A0 };
 const HPMAX = 12;
+/* battle stats from body size: big dinosaurs have more health, hit harder and move slower; small ones without armour are quick but fragile */
+const ARMORED = { ankylo: 1, stego: 1, kentro: 1 };
+function fightStats(d) {
+  const z = d.size * (d.big ? 1.12 : 1), arm = ARMORED[d.id] ? 1.15 : 1, small = d.size < 0.8 && !ARMORED[d.id];
+  const max = Math.round(HPMAX * (0.35 + 0.9 * Math.pow(z, 1.5)) * arm * (small ? 0.85 : 1) * (d.fly ? 0.7 : 1));
+  return { max, pow: clamp(0.3 + d.size * (d.big ? 1.25 : 0.9), 0.6, 1.7), spd: clamp(1.62 - 0.8 * z, 0.68, 1.35) };
+}
 const MOVE_NAME = { bite: 'Bite', claw: 'Claw', tail: 'Tail whack', horn: 'Horn charge', stomp: 'Stomp', roar: 'Roar' };
 // what each dinosaur fights with: teeth and claws, spiked or clubbed tails, horns, heavy feet
 const KITS = {
@@ -2452,7 +2459,7 @@ function drawPickRing() {
 /* the arena */
 function mkFighter(e, side) {
   const d = e.def;
-  return { e, d, side, box: d.swim ? [-135, -45, 130, 55] : d.box, hp: HPMAX, hpShow: HPMAX, off: 0, kx: 0, hop: 0, sq: 0, tilt: 0, lean: 0, leanT: 0, flip: 1, reach: 0, reachT: 0, swipe: 0, swipeT: 0, kick: 0, kickT: 0, hitNod: 0, recoil: 0, pace: 0, paceT: 0, kv: 0, kxT: 0, vel: 0, acc: 0, px: null, tail: 0, tailT: 0, wob: 0, shake: 0, dizzy: 0, jaw: 0, nod: 0, pitch: 0, jawT: 0, nodT: 0, pitchT: 0, amp: 0, ampT: 0, walk: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: rnd(TAU), asleep: 0, s: 1, cx: 0, oy: 0, fx: 0, fy: 0, mid: 0, air: 0 };
+  return { e, d, side, ...fightStats(d), box: d.swim ? [-135, -45, 130, 55] : d.box, hp: fightStats(d).max, hpShow: fightStats(d).max, off: 0, kx: 0, hop: 0, sq: 0, tilt: 0, lean: 0, leanT: 0, flip: 1, reach: 0, reachT: 0, swipe: 0, swipeT: 0, kick: 0, kickT: 0, hitNod: 0, recoil: 0, pace: 0, paceT: 0, kv: 0, kxT: 0, vel: 0, acc: 0, px: null, tail: 0, tailT: 0, wob: 0, shake: 0, dizzy: 0, jaw: 0, nod: 0, pitch: 0, jawT: 0, nodT: 0, pitchT: 0, amp: 0, ampT: 0, walk: 0, roarT: 0, ringT: 0, blinkT: rnd(1, 3), flap: rnd(TAU), asleep: 0, s: 1, cx: 0, oy: 0, fx: 0, fy: 0, mid: 0, air: 0 };
 }
 function openDuel(a, b) {
   if (a.esc || b.esc) return;
@@ -2467,12 +2474,19 @@ function sizeDuel() {
 }
 const dpuff = (x, y, kind, n, o) => puff(x, y, kind, n, { ...o, into: duel.parts });
 const fpos = (F, lx, ly) => [F.cx + F.off + F.kx - F.side * F.s * (lx - F.mid), F.oy + F.s * ly];
+/* real adult sizes in metres (nose to tail tip; wingspan for flying reptiles), so battles show true size differences */
+const REAL_LEN = { trex: 12.3, spino: 14, raptor: 1.8, dilo: 7, pachy: 4.5, para: 9.5, trike: 8.5, stego: 9, brachio: 22, ankylo: 7, ptera: 6, mosa: 13, diplo: 26, iguan: 10, styra: 5.5, theri: 10, galli: 6, kentro: 4.5, carno: 8, allo: 9.5, giga: 13, bary: 9, compy: 1, cerato: 6.5, elasmo: 10, ichthy: 3, quetz: 10.5, dimorph: 1.45 };
 function duelGeo() {
   const D = duel, air0 = Math.max(70, H * 0.17), big = Math.max(D.f[0].d.size, D.f[1].d.size); D.gy = Math.min(H * 0.76, D.barTop - 70);
   for (const F of D.f) {
     const d = F.d, e = F.e, box = F.box; F.air = d.swim || d.fly ? air0 : 0; F.mid = (box[0] + box[2]) / 2;
     const fit = Math.min(W * 0.42 / (box[2] - box[0]), (D.gy - 120 - F.air) * 0.9 / (box[3] - box[1]));
-    F.s = fit * lerp(0.6, 1, clamp((e.gk - 0.5) / 0.5, 0, 1)) * Math.pow(d.size / big, 0.8);
+    F.fit = fit; F.real = (REAL_LEN[d.id] || 8 * d.size) / (box[2] - box[0]);
+  }
+  const kAll = Math.min(...D.f.map(F => F.fit / F.real));   // one metres-to-pixels scale for both, set so the bigger one fits
+  for (const F of D.f) {
+    const d = F.d, e = F.e, box = F.box;
+    F.s = Math.max(kAll * F.real, W * 0.045 / (box[2] - box[0])) * lerp(0.6, 1, clamp((e.gk - 0.5) / 0.5, 0, 1));
     const intro = clamp(1 - D.t / 1.2, 0, 1), idle = !D.end && !(D.mv && D.mv.A === F) && !intro;
     F.cx = W * (F.side < 0 ? 0.27 : 0.73) + F.side * W * 0.16 * intro * intro * (3 - 2 * intro) + F.pace;
     F.paceT = idle ? Math.sin(D.t * 0.8 + (F.side > 0 ? 2.1 : 0)) * W * 0.02 : 0;
@@ -2490,9 +2504,9 @@ function stompFx(A, dir) {
 }
 const STARS = { cols: ['#ffd95a', '#fff6dc', '#ff9a3c'], v0: 140, v1: 460, s0: 9, s1: 18, t0: 0.6, t1: 1.1 };
 function strike(A, B, kind, base) {
-  const D = duel, dir = -A.side; let dmg = base; if (A.d.size > B.d.size + 0.12 && Math.random() < 0.35) dmg++;
-  B.hp = Math.max(0, B.hp - dmg); D.stop = dmg > base ? 0.12 : 0.075; D.punch = 1; B.dizzy = 1.5; B.wob = 1; B.shake = 0.3; B.sq = 0.28; B.hitNod = -0.32; B.recoil = 0.35; if (B.jaw < 0.5) B.jawT = 0.8;
-  const by = B.oy + B.s * (B.box[1] + B.box[3]) / 2, mx = (A.cx + A.off + B.cx + B.off) / 2, bx = B.cx + B.off, big = dmg > base;
+  const D = duel, dir = -A.side; const extra = A.d.size > B.d.size + 0.12 && Math.random() < 0.35, dmg = base * A.pow + (extra ? 1 : 0);
+  B.hp = Math.max(0, B.hp - dmg); D.stop = (extra ? 0.12 : 0.075) * (A.pow > 1.3 ? 1.4 : 1); if (A.pow > 1.3) D.shakeT = Math.max(D.shakeT || 0, 0.25); D.punch = 1; B.dizzy = 1.5; B.wob = 1; B.shake = 0.3; B.sq = 0.28; B.hitNod = -0.32; B.recoil = 0.35; if (B.jaw < 0.5) B.jawT = 0.8;
+  const by = B.oy + B.s * (B.box[1] + B.box[3]) / 2, mx = (A.cx + A.off + B.cx + B.off) / 2, bx = B.cx + B.off, big = extra;
   if (kind === 'bite') {
     const m = fpos(A, A.d.mouthRoar[0] + 26 * A.reach, A.d.mouthRoar[1]); B.kv += dir * 10 * 11; D.shakeT = 0.16;
     const cy = m[1] + A.s * 22; dpuff(m[0] + dir * A.s * 10, cy, 'chomp', 1, { v0: 0, v1: 0, s0: 30, s1: 30, t0: 0.55, t1: 0.55, grow: 0.5 });
@@ -2520,7 +2534,7 @@ function contactTrav(A, B, frontLocal, depth) {
 }
 const armTip = d => d.arm ? d.arm[d.arm.length - 1][0] + 14 : d.box[2] * 0.55;
 function updateMove(dt) {
-  const D = duel, m = D.mv; if (!m) return; const A = m.A, B = m.B, d = A.d, dir = -A.side, t = (m.t += dt);
+  const D = duel, m = D.mv; if (!m) return; const A = m.A, B = m.B, d = A.d, dir = -A.side, t = (m.t += dt * A.spd);
   const ease = k => k * k * (3 - 2 * k), kk = (a, b) => clamp((t - a) / (b - a), 0, 1);
   const fin = len => { if (t > len) { A.off = 0; A.flip = 1; D.mv = null; } };
   const walk = (k, to) => { A.off = dir * to * ease(k); if (k > 0 && k < 1) A.ampT = 0.95; };   // legs actually step while it moves
@@ -2615,7 +2629,7 @@ function updateDuel(dt) {
   updateMove(dt);
   if (D.mv && !D.end) { const m = D.mv, hitAt = HIT_AT[m.type] || 0.6; if (m.t > hitAt - 0.22 && m.t < hitAt) m.B.leanT -= 0.07; if (m.type === 'tail' && m.t > 0.55 && m.t < 0.9) m.A.tailT = m.t < 0.72 ? 1 : -1; }   // the other one braces just before the blow lands
   if (D.end) updateEnd(dt);
-  else if (!D.mv && D.t > 1.8) { D.aiT -= dt; if (D.aiT <= 0) { startMove(D.f[1], D.f[0], pick(D.kit[1])); D.aiT = rnd(2.2, 3.6); } }
+  else if (!D.mv && D.t > 1.8) { D.aiT -= dt; if (D.aiT <= 0) { startMove(D.f[1], D.f[0], pick(D.kit[1])); D.aiT = rnd(2.2, 3.6) / D.f[1].spd; } }
   for (const F of D.f) {
     F.hop = Math.max(0, F.hop - dt); F.sq = Math.max(0, F.sq - dt); F.shake = Math.max(0, F.shake - dt); F.dizzy = Math.max(0, F.dizzy - dt); F.wob = Math.max(0, F.wob - dt * 1.2);
     F.blinkT -= dt; if (F.blinkT < -0.14) F.blinkT = rnd(1.5, 4.5); F.flap += dt * 7.5; F.hpShow += (F.hp - F.hpShow) * Math.min(1, dt * 2.4);
@@ -2647,7 +2661,7 @@ function drawFighter(x, F, sx) {
   x.save(); x.translate(F.fx, F.fy); x.scale(-F.side * s * kx * F.flip, s * ky); x.translate(-F.mid, 0);
   const tl = F.tilt + F.lean * (F.flip < 0 ? -1 : 1);
   if (tl) { const py = d.swim || d.fly ? (F.box[1] + F.box[3]) / 2 : F.box[3]; x.translate(F.mid, py); x.rotate(tl); x.translate(-F.mid, -py); }
-  DA.time = D.t + e.seed; DA.walk = F.walk; DA.amp = F.amp; DA.jaw = F.jaw; DA.nod = F.nod; DA.pitch = F.pitch; DA.held = false; DA.flap = F.flap; DA.blink = F.blinkT < 0 || F.asleep > 0; DA.sad = F.dizzy > 0 || F.asleep > 0 || F.hp <= HPMAX * 0.25 || !!F.e.hurt;
+  DA.time = D.t + e.seed; DA.walk = F.walk; DA.amp = F.amp; DA.jaw = F.jaw; DA.nod = F.nod; DA.pitch = F.pitch; DA.held = false; DA.flap = F.flap; DA.blink = F.blinkT < 0 || F.asleep > 0; DA.sad = F.dizzy > 0 || F.asleep > 0 || F.hp <= F.max * 0.25 || !!F.e.hurt;
   DA.headK = 1 + (1 - e.gk) * 0.6; DA.eyeK = 1 + (1 - e.gk) * 0.5; DA.ow = clamp(4.2 / s, 1.5, 9); DA.lx = 0.8; DA.ly = 0; DA.tex = true; DA.closeUp = true; DA.reach = F.reach; DA.swipe = F.swipe; DA.kick = F.kick; DA.tail = F.tail;
   if (d.fly) x.translate(0, -16);
   drawDino(x, d, DA); if (e.bandT > 0) bandOn(x, F.box);
@@ -2685,13 +2699,13 @@ function renderDuel() {
   // health bars with the dinosaur's name
   const bw = clamp(W * 0.36, 140, 380), bh = clamp(H * 0.03, 14, 24);
   for (const F of D.f) {
-    const bx = F.cx - bw / 2, by = D.gy + 24, k = F.hp / HPMAX, ks = Math.max(k, F.hpShow / HPMAX);
+    const bwF = bw * clamp(F.max / 17, 0.45, 1), bx = F.cx - bwF / 2, by = D.gy + 24, k = F.hp / F.max, ks = Math.max(k, F.hpShow / F.max);
     x.font = '700 ' + clamp(Math.round(bh * 0.8), 12, 19) + 'px system-ui, sans-serif'; x.textAlign = 'center'; x.lineJoin = 'round'; x.lineWidth = 5; x.strokeStyle = OUT; x.fillStyle = '#fff6dc'; x.strokeText(F.d.name, F.cx, by - 5); x.fillText(F.d.name, F.cx, by - 5);
-    rrect(x, bx, by, bw, bh, bh / 2); x.fillStyle = 'rgba(27,42,38,.7)'; x.fill();
-    x.save(); rrect(x, bx, by, bw, bh, bh / 2); x.clip();
-    x.fillStyle = '#fff6dc'; x.fillRect(bx, by, bw * ks, bh); x.fillStyle = k > 0.5 ? '#6fd35a' : k > 0.25 ? '#ffc93c' : '#f2542d'; x.fillRect(bx, by, bw * k, bh);
-    x.fillStyle = 'rgba(255,255,255,.28)'; x.fillRect(bx, by, bw * ks, bh * 0.38); x.restore();
-    rrect(x, bx, by, bw, bh, bh / 2); x.lineWidth = 3; x.strokeStyle = OUT; x.stroke();
+    rrect(x, bx, by, bwF, bh, bh / 2); x.fillStyle = 'rgba(27,42,38,.7)'; x.fill();
+    x.save(); rrect(x, bx, by, bwF, bh, bh / 2); x.clip();
+    x.fillStyle = '#fff6dc'; x.fillRect(bx, by, bwF * ks, bh); x.fillStyle = k > 0.5 ? '#6fd35a' : k > 0.25 ? '#ffc93c' : '#f2542d'; x.fillRect(bx, by, bwF * k, bh);
+    x.fillStyle = 'rgba(255,255,255,.28)'; x.fillRect(bx, by, bwF * ks, bh * 0.38); x.restore();
+    rrect(x, bx, by, bwF, bh, bh / 2); x.lineWidth = 3; x.strokeStyle = OUT; x.stroke();
   }
 }
 duelCv.addEventListener('pointerdown', ev => {
@@ -3183,7 +3197,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { fightStats, setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
