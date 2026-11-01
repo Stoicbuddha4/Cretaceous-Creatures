@@ -2349,14 +2349,18 @@ function fightStats(d) {
 }
 const MOVE_NAME = { bite: 'Bite', claw: 'Claw', tail: 'Tail whack', horn: 'Horn charge', stomp: 'Stomp', roar: 'Roar' };
 // what each dinosaur fights with: teeth and claws, spiked or clubbed tails, horns, heavy feet
-const KITS = {
-  trike: ['horn', 'stomp', 'roar'], styra: ['horn', 'stomp', 'roar'], pachy: ['horn', 'tail', 'roar'],
-  stego: ['tail', 'stomp', 'roar'], ankylo: ['tail', 'stomp', 'roar'], kentro: ['tail', 'horn', 'roar'],
-  brachio: ['tail', 'stomp', 'roar'], diplo: ['tail', 'stomp', 'roar'], para: ['tail', 'stomp', 'roar'],
-  iguan: ['claw', 'tail', 'roar'], theri: ['claw', 'stomp', 'roar'], galli: ['stomp', 'tail', 'roar'],
-  carno: ['horn', 'bite', 'roar'], mosa: ['bite', 'tail', 'roar'], elasmo: ['bite', 'tail', 'roar'], ichthy: ['bite', 'tail', 'roar'],
+const KITS = {   // only what each animal really had: tiny arms can't scratch, plant eaters don't roar
+  trex: ['bite', 'stomp', 'roar'], giga: ['bite', 'stomp', 'roar'], carno: ['bite', 'horn', 'roar'], cerato: ['bite', 'horn', 'roar'],
+  spino: ['bite', 'claw', 'roar'], bary: ['bite', 'claw', 'roar'], allo: ['bite', 'claw', 'roar'], dilo: ['bite', 'claw', 'roar'],
+  raptor: ['bite', 'claw', 'roar'], compy: ['bite', 'claw', 'roar'],
+  trike: ['horn', 'stomp'], styra: ['horn', 'stomp'], pachy: ['horn', 'stomp'],
+  stego: ['tail', 'stomp'], ankylo: ['tail', 'stomp'], kentro: ['tail', 'stomp'],
+  brachio: ['tail', 'stomp'], diplo: ['tail', 'stomp'], para: ['tail', 'stomp'],
+  iguan: ['claw', 'tail', 'stomp'], theri: ['claw', 'stomp'], galli: ['stomp', 'claw'],
+  mosa: ['bite', 'tail'], elasmo: ['bite', 'tail'], ichthy: ['bite', 'tail'],
+  ptera: ['bite', 'claw'], quetz: ['bite', 'stomp'], dimorph: ['bite', 'claw'],
 };
-const kitOf = d => KITS[d.id] || (d.diet === 'plant' ? ['tail', 'stomp', 'roar'] : ['bite', 'claw', 'roar']);
+const kitOf = d => KITS[d.id] || (d.diet === 'plant' ? ['tail', 'stomp'] : ['bite', 'claw', 'roar']);
 
 /* button pictures */
 function drawFoot(c, r) {
@@ -2411,16 +2415,25 @@ function drawVs(c, r) {
   starPts(c, 0, -r * 0.1, r * 0.62, r * 0.3, 7); c.fillStyle = '#ffd93b'; c.fill(); c.stroke();
 }
 const MOVE_ICON = { bite: drawBite, claw: drawClaw, tail: drawTail, horn: drawHorn, stomp: drawFoot };
+/* a close-up box around a species' roaring head, for the roar button */
+const ROAR_BOX = { trex: [44, -212, 176, -122] };
+function roarBox(id) {
+  if (ROAR_BOX[id]) return ROAR_BOX[id];
+  const g = pose(DEF[id], { ...A0, amp: 0, walk: 0, time: 0, jaw: 1, nod: -0.2 }); let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const q of [...g.skullD, ...g.jawD]) { const r = q[2] || 0; x0 = Math.min(x0, q[0] - r); x1 = Math.max(x1, q[0] + r); y0 = Math.min(y0, q[1] - r); y1 = Math.max(y1, q[1] + r); }
+  const w = Math.max(x1 - x0, (y1 - y0) * 1.45) * 1.3, h = w / 1.45, cx = (x0 + x1) / 2 - w * 0.08, cy = (y0 + y1) / 2 + h * 0.08 - (DEF[id].swim ? 40 : 0);
+  return (ROAR_BOX[id] = [cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2]);
+}
 function paintDuelIcons() {
   if (!duel) return;
   duel.kit[0].forEach((k, i) => {
     const b = dBtns[i], cv = b.firstElementChild; b.setAttribute('aria-label', MOVE_NAME[k]); b.title = MOVE_NAME[k];
-    if (k === 'roar') fitIcon(cv, ['trex'], { box: [44, -212, 176, -122], fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); else paintIcon(cv, MOVE_ICON[k]);
+    if (k === 'roar') { const id = duel.f[0].d.id; fitIcon(cv, [id], { box: roarBox(id), fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); } else paintIcon(cv, MOVE_ICON[k]);
   });
   if (!dAgainBtn.hidden) paintIcon(dAgainBtn.firstElementChild, drawAgain);
   if (!dMedBtn.hidden) paintIcon(dMedBtn.firstElementChild, drawMed);
 }
-function setDuelUI(over, med) { for (const b of dBtns) b.hidden = over || !!med; dAgainBtn.hidden = !over; dMedBtn.hidden = !med; dMedBtn.classList.toggle('need', !!med); paintDuelIcons(); }
+function setDuelUI(over, med) { dBtns.forEach((b, i) => { b.hidden = over || !!med || i >= duel.kit[0].length; }); dAgainBtn.hidden = !over; dMedBtn.hidden = !med; dMedBtn.classList.toggle('need', !!med); paintDuelIcons(); }
 
 /* choosing who fights: the orange button, then tap two dinosaurs */
 function setPicking(on) {
@@ -2495,7 +2508,7 @@ function duelGeo() {
 }
 function duelRoar(F) { if (!duel || F.roarT > 0) return; F.roarT = F.d.voice.d * (F.e.stage === 0 ? 0.55 : 1); F.ringT = 0; roarSound(F.d, F.e.stage === 0); }
 function startMove(A, B, type) { duel.mv = { type, A, B, t: 0 }; duel.moved = true; }
-function duelDo(i) { if (!duel || duel.mv || duel.end) return; ac(); startMove(duel.f[0], duel.f[1], typeof i === 'number' ? duel.kit[0][i] : i); }
+function duelDo(i) { if (!duel || duel.mv || duel.end) return; const t = typeof i === 'number' ? duel.kit[0][i] : i; if (!t) return; ac(); startMove(duel.f[0], duel.f[1], t); }
 function stompFx(A, dir) {
   const D = duel, wet = A.d.swim, col = wet ? 'rgba(255,255,255,.85)' : 'rgba(214,196,150,.85)', x0 = A.cx + A.off + dir * (A.box[2] - A.box[0]) * A.s * 0.3;
   dpuff(x0, D.gy - 4, 'circle', 9, { col, an: dir > 0 ? 0 : Math.PI, spread: 0.4, v0: 260, v1: 500, s0: 6, s1: 12, t0: 0.5, t1: 0.9, grow: 1.4, r: 6 });
@@ -2522,7 +2535,7 @@ function strike(A, B, kind, base) {
   } else if (kind === 'stomp') {
     B.hop = 0.45; B.kv += dir * 14 * 11; D.shakeT = 0.18; dpuff(bx, by, 'pow', 1, { v0: 0, v1: 0, s0: 42, s1: 42, t0: 0.5, t1: 0.5, grow: 0.7 }); dpuff(bx, by, 'star', big ? 16 : 8, STARS); sfx.thud();
   } else { B.kv += dir * 26 * 11; D.shakeT = 0.12; dpuff(bx, by, 'star', big ? 14 : 8, STARS); sfx.tock(); }
-  duelSubEl.textContent = (big ? 'Super ' + MOVE_NAME[kind].toLowerCase() : MOVE_NAME[kind]) + '!';
+  const mn = A.d.id === 'pachy' && kind === 'horn' ? 'Head bash' : MOVE_NAME[kind]; duelSubEl.textContent = (big ? 'Super ' + mn.toLowerCase() : mn) + '!';
   if (B.hp <= 0) startEnd(A, B);
 }
 // how far the attacker must step so that its striking part (mouth, claws, horns or tail) lands on the other dinosaur
