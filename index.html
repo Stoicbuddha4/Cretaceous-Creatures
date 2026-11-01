@@ -534,6 +534,55 @@ function desat(col) {
 }
 function realC(sp) { let o = realCols.get(sp); if (!o) { o = {}; for (const k in sp.c) o[k] = typeof sp.c[k] === 'string' ? desat(sp.c[k]) : sp.c[k]; realCols.set(sp, o); } return o; }
 function drawDino(ctx, sp, a) { if (!SHADE3D) return drawDino0(ctx, sp, a); const keep = sp.c; sp.c = realC(sp); try { drawDino0(ctx, sp, a); } finally { sp.c = keep; } }
+
+/* ============ current science: feathers, lips, a paddle tail, big claws ============ */
+const FEATHERED = { raptor: 'wing', galli: 'wing', theri: 'wing', compy: 'fuzz' }, FUZZY = { ptera: 1, quetz: 1, dimorph: 1 }, NO_LIPS = { ichthy: 1, dimorph: 1 };
+function featherStroke(ctx, x, y, ang, len, w, col) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + Math.cos(ang + 0.25) * len * 0.5, y + Math.sin(ang + 0.25) * len * 0.5, x + Math.cos(ang) * len, y + Math.sin(ang) * len); ctx.stroke(); }
+function accBack(ctx, sp, g, a) {
+  const d = g.dense, n = d.length, c = sp.c, tN = Math.min(n - 1, (sp.tailN || 3) * 6);
+  if (sp.id === 'spino') {   // a tall, flat paddle tail for swimming
+    const top = [], bot = [];
+    for (let i = 0; i <= tN + 4; i++) { const p = d[i], nn = nrm(d, i), t = i / (tN + 4), h = 24 * Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.05)), 0.8); top.push([p[0] - nn[0] * (p[2] + h), p[1] - nn[1] * (p[2] + h)]); bot.push([p[0] + nn[0] * (p[2] * 0.9 + h * 0.4), p[1] + nn[1] * (p[2] * 0.9 + h * 0.4)]); }
+    ctx.lineJoin = 'round'; poly(ctx, top.concat(bot.slice().reverse())); ctx.fillStyle = c.dark; ctx.fill(); ctx.strokeStyle = c.line; ctx.lineWidth = a.ow; ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,240,210,.18)'; ctx.lineWidth = Math.max(0.6, a.ow * 0.6); for (let i = 2; i < top.length - 2; i += 2) { ctx.beginPath(); ctx.moveTo(bot[i][0], bot[i][1]); ctx.lineTo(top[i][0], top[i][1]); ctx.stroke(); }
+  }
+  if (FEATHERED[sp.id] === 'wing') {   // a fan of long feathers at the end of the tail
+    for (let k = 7; k >= 0; k--) { const i = Math.min(n - 2, k * 2), p = d[i], q = d[i + 1], dir = Math.atan2(p[1] - q[1], p[0] - q[0]);
+      for (const sgn of [-1, 1]) { ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(dir + sgn * (0.16 + k * 0.035)); ctx.beginPath(); ctx.ellipse(10, 0, 13 - k * 0.6, 2.6, 0, 0, TAU); ctx.fillStyle = (k + (sgn > 0 ? 1 : 0)) % 2 ? c.dark : c.base; ctx.fill(); ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.4, a.ow * 0.45); ctx.stroke(); ctx.restore(); } }
+  }
+}
+function accCoat(ctx, sp, g, a) {   // feathers or fuzz over the body
+  const kind = FEATHERED[sp.id] || (FUZZY[sp.id] ? 'pyc' : null); if (!kind) return;
+  const d = g.dense, n = d.length, c = sp.c, R = mulberry(sp.id.length * 17 + 3), fine = a.fine !== false;
+  ctx.save(); ctx.beginPath(); tube(ctx, d, 0); ctx.clip(); ctx.lineCap = 'round';
+  const step = fine ? 1 : 2;
+  for (let i = 1; i < n - 1; i += step) {
+    const p = d[i], r = p[2], nn = nrm(d, i), tx = d[i + 1][0] - d[i - 1][0], ty = d[i + 1][1] - d[i - 1][1], back = Math.atan2(-ty, -tx), rows = Math.max(2, Math.round(r / 3));
+    for (let k = 0; k < rows; k++) { const v = -1 + 2 * (k + R()) / rows, x = p[0] + nn[0] * r * v, y = p[1] + nn[1] * r * v, len = (kind === 'pyc' ? 3 : 6) + R() * 4, light = v < -0.3;
+      featherStroke(ctx, x, y, back + (R() - 0.5) * 0.6 + v * 0.3, len, Math.max(0.6, (kind === 'pyc' ? 1 : 1.8) * (0.7 + R() * 0.6)), light ? 'rgba(255,240,215,.22)' : v > 0.4 ? 'rgba(255,245,225,.18)' : 'rgba(25,16,8,.22)'); }
+  }
+  ctx.restore();
+  ctx.lineCap = 'round';   // a soft fringe of feathers sticking out along the back and belly
+  for (let i = 2; i < n - 2; i += 2) { const p = d[i], r = p[2], nn = nrm(d, i), tx = d[i + 1][0] - d[i - 1][0], ty = d[i + 1][1] - d[i - 1][1], back = Math.atan2(-ty, -tx); if (r < 2) continue;
+    for (const sgn of [-1, 1]) { const x = p[0] + nn[0] * r * sgn * 0.92, y = p[1] + nn[1] * r * sgn * 0.92, len = (kind === 'pyc' ? 2.5 : 5) + R() * 3; featherStroke(ctx, x, y, back + sgn * 0.5, len, Math.max(0.6, kind === 'pyc' ? 1 : 1.6), sgn < 0 ? c.base : c.belly); } }
+}
+function accArm(ctx, sp, g, a) {
+  const c = sp.c, A = g.arm; if (!A) return;
+  if (FEATHERED[sp.id] === 'wing') {   // arm feathers like small wings
+    for (let i = Math.floor(A.length * 0.35); i < A.length; i++) { const p = A[i], t = i / (A.length - 1), len = 9 + t * 13;
+      ctx.save(); ctx.translate(p[0], p[1]); ctx.rotate(Math.PI * (0.62 + t * 0.12)); ctx.beginPath(); ctx.ellipse(len * 0.5, 0, len * 0.55, 2.6, 0, 0, TAU); ctx.fillStyle = i % 2 ? c.dark : c.base; ctx.fill(); ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.4, a.ow * 0.45); ctx.stroke(); ctx.restore(); }
+  }
+  const e = A[A.length - 1];
+  const claw = (len, wid, ang) => { ctx.save(); ctx.translate(e[0], e[1]); ctx.rotate(ang); ctx.beginPath(); ctx.moveTo(0, -wid); ctx.quadraticCurveTo(len * 0.8, -wid * 0.6, len, wid * 2.2); ctx.quadraticCurveTo(len * 0.5, wid * 0.4, 0, wid); ctx.closePath(); ctx.fillStyle = '#2b241d'; ctx.fill(); ctx.restore(); };
+  if (sp.id === 'bary') claw(16, 2.6, 0.2);   // Baryonyx means "heavy claw": a huge hooked thumb claw
+  if (sp.id === 'theri') { claw(30, 2.2, 0.9); claw(26, 2, 1.15); }   // Therizinosaurus' long scythe claws
+  if (sp.id === 'iguan') { ctx.save(); ctx.translate(e[0], e[1]); ctx.rotate(-1.2); ctx.beginPath(); ctx.moveTo(-2.5, 0); ctx.lineTo(0, -12); ctx.lineTo(2.5, 0); ctx.closePath(); ctx.fillStyle = '#e8dcc0'; ctx.fill(); ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.4, a.ow * 0.5); ctx.stroke(); ctx.restore(); }   // Iguanodon's thumb spike
+}
+function accFront(ctx, sp, g, a) {
+  if (sp.id === 'raptor') for (const L of g.near) {   // the big curved "killing claw" held up off the ground
+    const f = L.foot[0], r = f[2]; ctx.save(); ctx.translate(f[0] + r * 0.4, f[1] - r * 0.2); ctx.beginPath(); ctx.moveTo(-r * 0.3, 0); ctx.quadraticCurveTo(r * 0.6, -r * 2.2, r * 1.9, -r * 1.2); ctx.quadraticCurveTo(r * 0.7, -r * 1.2, r * 0.3, r * 0.2); ctx.closePath(); ctx.fillStyle = '#2b241d'; ctx.fill(); ctx.restore();
+  }
+}
 function drawDino0(ctx, sp, a) {
   const c = sp.c; a.line = c.line; a.ow *= SHADE3D && a.fine !== false ? 0.3 : 0.8;   // sculpted bodies need only a fine edge
   const g = pose(sp, a), ow = a.ow, soft = !Q || !!a.closeUp, fine = soft && a.fine !== false;   // close-ups always get full detail   // the finest shading layers are skipped when a dinosaur is small on screen
@@ -542,6 +591,7 @@ function drawDino0(ctx, sp, a) {
   if (g.farArm) far.push(g.farArm);
   if (far.length) { fillTubes(ctx, far, ow, c.line); fillTubes(ctx, far, 0, c.far); }
   if (sp.back) sp.back(ctx, g, sp, a);
+  if (SHADE3D) accBack(ctx, sp, g, a);
   fillTubes(ctx, [g.dense, g.skullD, g.jawD], ow, c.line);
   const d = g.dense, n = d.length, sk = g.skullD, jw = g.jawD, sT = sk[sk.length - 1], jT = jw[jw.length - 1];
   const mouthIn = () => {
@@ -562,11 +612,12 @@ function drawDino0(ctx, sp, a) {
   }
   if (sp.marks) sp.marks(ctx, g, sp, a);
   if (SHADE3D && fine) sculptBody(ctx, sp, g, a);
+  if (SHADE3D) accCoat(ctx, sp, g, a);
   if (sp.mid) { sp.mid(ctx, g, sp, a); fillTubes(ctx, [sk, jw], ow, c.line); mouthIn(); headFill(); }
   ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.8, ow * 0.8); ctx.lineCap = 'round'; ctx.beginPath();
   for (let i = 0; i < jw.length; i++) { const p = jw[i], nn = nrm(jw, i), x = p[0] - nn[0] * p[2], y = p[1] - nn[1] * p[2]; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
   ctx.stroke();
-  if (sp.teeth) {
+  if (sp.teeth && !(SHADE3D && sp.lips && a.jaw < 0.3)) {
     ctx.fillStyle = '#f4ecd2'; const th = 5 * g.hk;
     for (let i = Math.floor(sk.length * 0.38); i < sk.length; i += 2) {
       const p = sk[i], nn = nrm(sk, i), tx = nn[1], ty = -nn[0], bx = p[0] + nn[0] * p[2] * 0.82, by = p[1] + nn[1] * p[2] * 0.82;
@@ -574,7 +625,7 @@ function drawDino0(ctx, sp, a) {
     }
   }
   { const p = sk[sk.length - 2], nn = nrm(sk, sk.length - 2); circ(ctx, p[0] - nn[0] * p[2] * 0.45, p[1] - nn[1] * p[2] * 0.45, Math.max(0.8, p[2] * 0.12)); ctx.fillStyle = c.line; ctx.fill(); }
-  if (g.arm) { fillTubes(ctx, [g.arm], ow, c.line); fillTubes(ctx, [g.arm], 0, c.base); if (fine) fillTubes(ctx, [off(g.arm, 0.3, 0.45)], 0, c.h1); }
+  if (g.arm) { fillTubes(ctx, [g.arm], ow, c.line); fillTubes(ctx, [g.arm], 0, c.base); if (fine) fillTubes(ctx, [off(g.arm, 0.3, 0.45)], 0, c.h1); if (SHADE3D) accArm(ctx, sp, g, a); }
   const near = []; for (const L of g.near) near.push(L.limb, L.foot);
   if (near.length) {
     fillTubes(ctx, near, ow, c.line); fillTubes(ctx, near, 0, c.base);
@@ -589,6 +640,7 @@ function drawDino0(ctx, sp, a) {
   }
   const e = g.H(sp.eye[0], sp.eye[1]); drawEye(ctx, e[0], e[1], sp.eye[2] * g.hk * a.eyeK, a, sp);
   if (sp.front) sp.front(ctx, g, sp, a);
+  if (SHADE3D) accFront(ctx, sp, g, a);
 }
 /* markings and add-ons */
 function stripes(ctx, g, sp, f0 = 0.14, f1 = 0.82, step = 3) {
@@ -657,9 +709,9 @@ species('trex', { name: 'Tyrannosaurus rex', diet: 'meat', size: 1, speed: 55, f
 
 species('spino', { name: 'Spinosaurus', diet: 'meat', size: 1.06, speed: 50, fierce: true, teeth: true, big: true, eatPitch: 0.4,
   c: { base: '#a8456b', dark: '#6c2646', belly: '#f6d2c0', accent: '#f4a53a' }, voice: { kind: 'roar', f: 84, d: 1.3, vol: 0.58 },
-  spine: [[-176, -70, 3], [-126, -72, 11], [-70, -80, 22], [-20, -88, 31], [30, -92, 29], [62, -108, 20]], neck: 4,
-  skull: [[72, -122, 17], [108, -118, 12], [146, -110, 9]], jaw: [[76, -110, 8], [110, -106, 7], [140, -102, 5]], hinge: [70, -114], eye: [88, -130, 6],
-  ...biped(-14, -72, 38, 36, [18, 11, 8], 24), arm: [[38, -82, 8], [54, -64, 6], [66, -60, 5]],
+  spine: [[-176, -52, 3], [-126, -54, 11], [-70, -62, 22], [-20, -70, 31], [30, -74, 29], [62, -92, 20]], neck: 4,
+  skull: [[72, -108, 17], [110, -104, 11], [152, -96, 8]], jaw: [[76, -96, 8], [112, -92, 6.5], [146, -88, 4.5]], hinge: [70, -100], eye: [88, -116, 5.5],
+  ...biped(-14, -54, 29, 27, [17, 10, 7], 22), arm: [[38, -64, 8], [54, -46, 6], [66, -40, 5]],
   box: [-185, -185, 165, 6],
   back(ctx, g, sp, a) {
     const d = g.dense, n = d.length, i0 = Math.floor(n * 0.3), i1 = Math.floor(n * 0.86), top = [], base = [];
@@ -949,6 +1001,7 @@ const NAT = {
   elasmo: { base: '#4f7a78', dark: '#2d4e4c', belly: '#d6e3db' }, ichthy: { base: '#55667a', dark: '#33404d', belly: '#e3e9eb' },
   quetz: { base: '#a59c88', dark: '#6b6352', belly: '#efebdd', accent: '#a33e2e' }, dimorph: { base: '#9a6a44', dark: '#5c3b21', belly: '#e9d7bc', accent: '#487a70' },
 };
+for (const id in SP) SP[id].lips = !!SP[id].teeth && !NO_LIPS[id];   // most dinosaurs had lips over their teeth, like lizards
 for (const id in SP) { const c = SP[id].c; Object.assign(c, NAT[id] || {}); c.far = shade(c.base, -0.3); c.hi = shade(c.base, 0.24); c.h1 = shade(c.base, 0.11); c.lo = shade(c.base, -0.24); c.line = shade(c.base, -0.6); c.mid = mix(c.base, c.belly, 0.55); }
 const A0 = { time: 0, walk: 0.9, amp: 0.55, jaw: 0, nod: 0, pitch: 0, headK: 1, eyeK: 1, blink: false, lx: 0.5, ly: 0, held: false, flap: 0.75, ow: 3 };
 // Work out how far each dinosaur has to bow to reach food on the ground, and where its mouth ends up.
