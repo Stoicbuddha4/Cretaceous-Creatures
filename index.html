@@ -393,6 +393,13 @@ function pose(sp, a) {
     let fx = L.hip[0] + L.fo + Math.cos(ph) * L.stride * a.amp, fy = -Math.max(0, -Math.sin(ph)) * L.lift * a.amp - L.r[2];
     if (kck && L.hip[0] > hipx + 4) { fx += kck * 38; fy -= kck * 34; }
     if (a.held) { fx = L.hip[0] + L.fo + Math.sin(a.time * 10 + L.ph) * 8; fy = 5 - L.r[2]; }
+    if (SHADE3D && sp.near.length === 1 && !a.held && !sp.fly) {
+      const mt = L.l2 * 0.62, ax = fx - mt * 0.4, ay = fy - mt * 0.9, kk = ik(L.hip[0], hy2, L.l1 * 0.92, L.l2 * 0.8, ax, ay, L.bend);
+      return {
+        limb: catmull([[L.hip[0], hy2, L.r[0] * 1.18], [kk[0], kk[1], L.r[1] * 0.95], [kk[2], kk[3], L.r[2] * 0.72], [fx, fy, L.r[2] * 0.62]], 4),
+        foot: [[fx, fy, L.r[2] * 0.62], [fx + L.foot * 0.85, fy + L.r[2] * 0.3, L.r[2] * 0.42]]
+      };
+    }
     const k = ik(L.hip[0], hy2, L.l1, L.l2, fx, fy, L.bend);
     return {
       limb: catmull([[L.hip[0], hy2, L.r[0]], [k[0], k[1], L.r[1]], [k[2], k[3], L.r[2]]], 4),
@@ -413,7 +420,102 @@ function mix(h1, h2, t) { const a = parseInt(h1.slice(1), 16), b = parseInt(h2.s
 // a small tile of mottled speckles, stamped over the skin when a dinosaur is big enough on screen to show it
 const skinTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 72; const x = c.getContext('2d'), R = mulberry(9); for (let i = 0; i < 250; i++) { x.fillStyle = R() < 0.62 ? 'rgba(20,14,8,' + (0.1 + R() * 0.17) + ')' : 'rgba(255,248,225,' + (0.08 + R() * 0.12) + ')'; x.beginPath(); x.ellipse(R() * 72, R() * 72, 0.8 + R() * 2.2, 0.6 + R() * 1.6, R() * 3, 0, TAU); x.fill(); } return c; })();
 const skinPat = new WeakMap();
+/* sculpted look: soft rounded light and shadow across every body part, a cool rim light, shadow where limbs meet the body, and embossed scales */
+let SHADE3D = true;
+const scaleTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 56; const x = c.getContext('2d'), R = mulberry(21);
+  for (let i = 0; i < 160; i++) { const px = R() * 56, py = R() * 56, r = 1.1 + R() * 1.3; for (const [dx, dy] of [[0, 0], [56, 0], [-56, 0], [0, 56], [0, -56]]) { x.beginPath(); x.arc(px + dx, py + dy, r, Math.PI * 0.85, Math.PI * 1.85); x.strokeStyle = 'rgba(255,250,230,.16)'; x.lineWidth = 0.9; x.stroke(); x.beginPath(); x.arc(px + dx, py + dy, r, Math.PI * 1.85, Math.PI * 2.85); x.strokeStyle = 'rgba(15,10,6,.18)'; x.stroke(); } }
+  return c; })();
+const scalePat = new WeakMap();
+function offT(d, k, rk, i0 = 0, i1 = d.length) { const out = []; for (let i = i0; i < i1; i++) { const p = d[i], nn = nrm(d, i); out.push([p[0] + nn[0] * p[2] * k, p[1] + nn[1] * p[2] * k, Math.max(0.5, p[2] * rk)]); } return out; }
+function softVolume(ctx, t, top, i0 = 0) {   // layered translucent bands: bright on the lit side, deep shadow on the far side
+  if (t.length < 3) return;
+  for (let b = 0; b < 12; b++) {
+    const k = -0.94 + b * (1.88 / 11), lt = Math.pow(Math.max(0, -k - 0.05), 1.3) * 0.26, dk = Math.pow(Math.max(0, k - 0.1), 1.25) * 0.3;
+    if (lt > 0.01) fillTubes(ctx, [offT(t, top ? k : -k, 0.17, i0)], 0, 'rgba(255,244,214,' + lt.toFixed(3) + ')');
+    if (dk > 0.01) fillTubes(ctx, [offT(t, top ? k : -k, 0.17, i0)], 0, 'rgba(16,11,7,' + dk.toFixed(3) + ')');
+  }
+}
+function rimLight(ctx, t, i0, i1, w, col) { ctx.beginPath(); for (let i = i0; i < i1; i++) { const p = t[i], nn = nrm(t, i), x = p[0] - nn[0] * p[2] * 0.93, y = p[1] - nn[1] * p[2] * 0.93; i > i0 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); }
+function fold(ctx, p, nn, k0, k1, r, bend, w) {   // one skin crease across a body part, pressed in with a pale edge beside it
+  const tx = nn[1], ty = -nn[0], x0 = p[0] + nn[0] * r * k0, y0 = p[1] + nn[1] * r * k0, x1 = p[0] + nn[0] * r * k1, y1 = p[1] + nn[1] * r * k1, mx = (x0 + x1) / 2 + tx * r * bend, my = (y0 + y1) / 2 + ty * r * bend;
+  ctx.lineCap = 'round'; ctx.lineWidth = w;
+  ctx.strokeStyle = 'rgba(20,13,8,.28)'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo(mx, my, x1, y1); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,240,210,.16)'; ctx.beginPath(); ctx.moveTo(x0 + tx * w * 1.3, y0 + ty * w * 1.3); ctx.quadraticCurveTo(mx + tx * w * 1.3, my + ty * w * 1.3, x1 + tx * w * 1.3, y1 + ty * w * 1.3); ctx.stroke();
+}
+function drawClaws(ctx, legs) {
+  for (const L of legs) { const f = L.foot[1], r = f[2];
+    for (let k = 0; k < 3; k++) { const x = f[0] + r * 0.82 - k * r * 0.6, y = f[1] + r * 0.45; ctx.beginPath(); ctx.moveTo(x - r * 0.2, y - r * 0.16); ctx.quadraticCurveTo(x + r * 0.32, y - r * 0.08, x + r * 0.42, y + r * 0.42); ctx.quadraticCurveTo(x + r * 0.05, y + r * 0.3, x - r * 0.14, y + r * 0.22); ctx.closePath(); ctx.fillStyle = '#2b241d'; ctx.fill(); ctx.strokeStyle = 'rgba(255,240,220,.35)'; ctx.lineWidth = Math.max(0.5, r * 0.06); ctx.beginPath(); ctx.moveTo(x - r * 0.08, y - r * 0.1); ctx.quadraticCurveTo(x + r * 0.22, y - r * 0.04, x + r * 0.3, y + r * 0.22); ctx.stroke(); } }
+}
+function sculptDetail(ctx, sp, g, a) {
+  const d = g.dense, n = d.length, tN = Math.min(n - 1, (sp.tailN || 3) * 6), nN = Math.min(n - 1, sp.neck * 6), sk = g.skullD, jw = g.jawD;
+  if (a.fine === false) return;
+  // creases: rings round the neck, folds under the belly and at the base of the tail
+  ctx.save(); ctx.beginPath(); tube(ctx, d, 0); ctx.clip();
+  let rMax = 0; for (const q of d) rMax = Math.max(rMax, q[2]);
+  for (let i = Math.max(nN - 4, 1); i < n - 3; i += 2) { const p = d[i], r = p[2]; if (r < 2.5 || r > rMax * 0.62) continue; fold(ctx, p, nrm(d, i), -0.35, 0.95, r, 0.18, Math.max(0.5, r * 0.05)); }
+  for (let i = Math.round(tN + (nN - tN) * 0.25); i < nN; i += 4) { const p = d[i], r = p[2]; if (r < 3) continue; fold(ctx, p, nrm(d, i), 0.6, 0.98, r, -0.25, Math.max(0.5, r * 0.035)); }
+  for (let i = Math.max(1, tN - 6); i < tN + 2; i += 3) { const p = d[i], r = p[2]; if (r < 2.5 || r > rMax * 0.5) continue; fold(ctx, p, nrm(d, i), -0.7, 0.9, r, 0.22, Math.max(0.5, r * 0.035)); }
+  ctx.restore();
+  // a row of bony scutes along the spine
+  if (!sp.swim) for (let i = Math.round(tN * 0.4); i < n - 2; i += 3) {
+    const p = d[i], r = p[2], nn = nrm(d, i), sz = clamp(r * 0.055, 0.6, 2.2); if (r < 3) continue;
+    const x = p[0] - nn[0] * r * 0.9, y = p[1] - nn[1] * r * 0.9, gr = ctx.createRadialGradient(x - sz * 0.3, y - sz * 0.4, 0, x, y, sz * 1.2);
+    gr.addColorStop(0, 'rgba(255,246,225,.22)'); gr.addColorStop(0.6, 'rgba(90,70,45,.12)'); gr.addColorStop(1, 'rgba(20,14,8,.3)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(x, y, sz * 1.25, sz, Math.atan2(nn[0], -nn[1]), 0, TAU); ctx.fill();
+  }
+  // head: jaw muscle, sunken eye socket with a brow ridge, nostril, and a row of lip scales
+  const e = g.H(sp.eye[0], sp.eye[1]), er = sp.eye[2] * g.hk * (a.eyeK || 1);
+  ctx.save(); ctx.beginPath(); tube(ctx, sk, 0); tube(ctx, jw, 0); ctx.clip();
+  const h = g.Hh, hr = sk[Math.floor(sk.length * 0.25)][2], jm = ctx.createRadialGradient(h[0] + hr * 0.2, h[1] - hr * 0.3, 0, h[0], h[1], hr * 1.3); jm.addColorStop(0, 'rgba(255,240,210,.2)'); jm.addColorStop(1, 'rgba(255,240,210,0)'); ctx.fillStyle = jm; ctx.fillRect(h[0] - hr * 1.4, h[1] - hr * 1.4, hr * 2.8, hr * 2.8);
+  const so = ctx.createRadialGradient(e[0], e[1], er * 0.6, e[0], e[1], er * 2.3); so.addColorStop(0, 'rgba(20,12,8,.35)'); so.addColorStop(1, 'rgba(20,12,8,0)'); ctx.fillStyle = so; ctx.fillRect(e[0] - er * 2.4, e[1] - er * 2.4, er * 4.8, er * 4.8);
+  ctx.lineCap = 'round'; ctx.lineWidth = Math.max(0.8, er * 0.45); ctx.strokeStyle = 'rgba(255,240,210,.32)'; ctx.beginPath(); ctx.arc(e[0] + er * 0.2, e[1] + er * 0.3, er * 1.75, Math.PI * 1.15, Math.PI * 1.75); ctx.stroke();
+  ctx.lineWidth = Math.max(0.6, er * 0.25); ctx.strokeStyle = 'rgba(20,12,8,.3)'; ctx.beginPath(); ctx.arc(e[0] + er * 0.2, e[1] + er * 0.3, er * 1.45, Math.PI * 1.15, Math.PI * 1.75); ctx.stroke();
+  const ln = sk.length, tip = sk[ln - 2], tn = nrm(sk, ln - 2), nx = tip[0] - tn[0] * tip[2] * 0.4 - tn[1] * tip[2] * 0.3, ny = tip[1] - tn[1] * tip[2] * 0.4 + tn[0] * tip[2] * 0.3;
+  ctx.fillStyle = 'rgba(20,12,8,.5)'; ctx.beginPath(); ctx.ellipse(nx, ny, Math.max(0.6, tip[2] * 0.22), Math.max(0.4, tip[2] * 0.13), Math.atan2(tn[0], -tn[1]), 0, TAU); ctx.fill();
+  for (let i = Math.floor(ln * 0.3); i < ln - 1; i += 1) { const p = sk[i], nn = nrm(sk, i), x = p[0] + nn[0] * p[2] * 0.62, y = p[1] + nn[1] * p[2] * 0.62, sz = Math.max(0.5, p[2] * 0.09); ctx.fillStyle = 'rgba(255,240,210,.22)'; circ(ctx, x, y, sz); ctx.fill(); ctx.fillStyle = 'rgba(20,12,8,.22)'; circ(ctx, x + sz * 0.5, y + sz * 0.5, sz * 0.7); ctx.fill(); }
+  for (let i = Math.floor(ln * 0.55); i < ln - 1; i += 1) { const p = sk[i], nn = nrm(sk, i); for (const k of [-0.2, 0.15]) { const x = p[0] + nn[0] * p[2] * k, y = p[1] + nn[1] * p[2] * k, sz = Math.max(0.4, p[2] * 0.07); ctx.fillStyle = 'rgba(255,240,210,.18)'; circ(ctx, x, y, sz); ctx.fill(); } }
+  ctx.restore();
+}
+function sculptBody(ctx, sp, g, a) {
+  const d = g.dense, n = d.length, sk = g.skullD, jw = g.jawD;
+  ctx.save(); ctx.beginPath(); tube(ctx, d, 0); ctx.clip();
+  softVolume(ctx, d, true, Math.floor(n * 0.02));
+  for (const L of g.near) { const h = L.limb[0], r = Math.max(6, h[2] * 1.5), gr = ctx.createRadialGradient(h[0], h[1] + r * 0.2, r * 0.2, h[0], h[1] + r * 0.2, r * 1.3); gr.addColorStop(0, 'rgba(15,10,6,.22)'); gr.addColorStop(1, 'rgba(15,10,6,0)'); ctx.fillStyle = gr; ctx.fillRect(h[0] - r * 1.4, h[1] - r * 1.2, r * 2.8, r * 2.8); }
+  if (a.tex) { let p = scalePat.get(ctx); if (!p) { p = ctx.createPattern(scaleTex, 'repeat'); scalePat.set(ctx, p); } const b = sp.box; ctx.fillStyle = p; ctx.fillRect(b[0] - 260, b[1] - 260, b[2] - b[0] + 520, b[3] - b[1] + 520); }
+  fillTubes(ctx, [offT(d, -0.62, 0.1, Math.floor(n * 0.3), Math.floor(n * 0.7))], 0, 'rgba(255,255,255,.1)');   // a soft sheen along the back
+  rimLight(ctx, d, Math.floor(n * 0.04), n, Math.max(1.2, a.ow * 0.9), 'rgba(185,215,255,.55)');
+  ctx.restore();
+  ctx.save(); ctx.beginPath(); tube(ctx, sk, 0); tube(ctx, jw, 0); ctx.clip();
+  fillTubes(ctx, [offT(sk, -0.7, 0.32), offT(sk, -0.48, 0.3)], 0, 'rgba(255,246,220,.12)'); fillTubes(ctx, [offT(jw, 0.7, 0.4)], 0, 'rgba(18,12,8,.2)');
+  if (a.tex) { ctx.fillStyle = scalePat.get(ctx) || ctx.createPattern(scaleTex, 'repeat'); const b = sp.box; ctx.fillRect(b[0] - 260, b[1] - 260, b[2] - b[0] + 520, b[3] - b[1] + 520); }
+  rimLight(ctx, sk, 0, sk.length, Math.max(1, a.ow * 0.8), 'rgba(185,215,255,.5)');
+  ctx.restore();
+  sculptDetail(ctx, sp, g, a);
+}
+function sculptLimbs(ctx, sp, g, a, list) {
+  for (const L of list) {
+    ctx.save(); ctx.beginPath(); tube(ctx, L.limb, 0); tube(ctx, L.foot, 0); ctx.clip();
+    softVolume(ctx, L.limb, false);
+    const t = L.limb[1] || L.limb[0], gr = ctx.createRadialGradient(t[0] - t[2] * 0.3, t[1] - t[2] * 0.4, 0, t[0], t[1], t[2] * 1.6); gr.addColorStop(0, 'rgba(255,246,220,.18)'); gr.addColorStop(1, 'rgba(255,246,220,0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(t[0], t[1], t[2] * 1.6, 0, TAU); ctx.fill();   // the round of the thigh muscle
+    if (a.fine !== false) { const lb = L.limb, m = Math.floor(lb.length / 2); for (const i of [m - 1, m, m + 1, lb.length - 2, lb.length - 1]) { const q = lb[Math.max(0, Math.min(lb.length - 1, i))]; fold(ctx, q, nrm(lb, Math.max(0, Math.min(lb.length - 1, i))), -0.85, 0.85, q[2], 0.25, Math.max(0.5, q[2] * 0.07)); }
+      const t0 = lb[0], t1 = lb[m]; ctx.strokeStyle = 'rgba(20,13,8,.22)'; ctx.lineWidth = Math.max(0.6, t0[2] * 0.06); ctx.beginPath(); ctx.moveTo(t0[0] + t0[2] * 0.3, t0[1] - t0[2] * 0.4); ctx.quadraticCurveTo((t0[0] + t1[0]) / 2 + t0[2] * 0.55, (t0[1] + t1[1]) / 2, t1[0] + t1[2] * 0.2, t1[1] - t1[2] * 0.2); ctx.stroke(); }
+    const f = L.foot[0], fg = ctx.createLinearGradient(0, f[1] - f[2], 0, f[1] + f[2]); fg.addColorStop(0, 'rgba(18,12,8,0)'); fg.addColorStop(1, 'rgba(18,12,8,.25)'); ctx.fillStyle = fg; ctx.fillRect(f[0] - f[2] * 3, f[1] - f[2], f[2] * 6, f[2] * 2.2);
+    if (a.tex) { ctx.fillStyle = scalePat.get(ctx) || ctx.createPattern(scaleTex, 'repeat'); const b = sp.box; ctx.fillRect(b[0] - 260, b[1] - 260, b[2] - b[0] + 520, b[3] - b[1] + 520); }
+    ctx.restore();
+  }
+}
 function drawEye(ctx, x, y, r, a, sp) {
+  if (SHADE3D) {
+    r *= 0.5; const c = sp.c;
+    circ(ctx, x, y, r * 1.35); ctx.fillStyle = 'rgba(25,16,10,.75)'; ctx.fill();
+    if (a.blink) { ctx.strokeStyle = 'rgba(25,16,10,.9)'; ctx.lineWidth = Math.max(0.6, r * 0.25); ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.stroke(); return; }
+    const ir = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r); ir.addColorStop(0, sp.fierce ? '#f2c25a' : '#c08a3c'); ir.addColorStop(1, sp.fierce ? '#9a5a10' : '#5a3a1a');
+    circ(ctx, x, y, r); ctx.fillStyle = ir; ctx.fill();
+    const px = x + a.lx * r * 0.18, py = y + a.ly * r * 0.18; ctx.fillStyle = '#0c0907'; ctx.beginPath(); if (sp.fierce) ctx.ellipse(px, py, r * 0.2, r * 0.72, 0, 0, TAU); else ctx.arc(px, py, r * 0.42, 0, TAU); ctx.fill();
+    circ(ctx, x - r * 0.35, y - r * 0.35, r * 0.18); ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * 1.06, Math.PI * (a.sad ? 0.98 : 1.08), Math.PI * (a.sad ? 2.02 : 1.92)); ctx.closePath(); ctx.fillStyle = c.base; ctx.fill();   // heavy upper lid
+    ctx.strokeStyle = 'rgba(25,16,10,.7)'; ctx.lineWidth = Math.max(0.5, r * 0.18); ctx.beginPath(); ctx.arc(x, y, r * 1.06, Math.PI * (a.sad ? 0.98 : 1.08), Math.PI * (a.sad ? 2.02 : 1.92)); ctx.stroke();
+    return;
+  }
   r *= 0.66; const c = sp.c;
   circ(ctx, x, y, r * 1.24); ctx.fillStyle = c.lo; ctx.fill();
   if (a.blink) { circ(ctx, x, y, r); ctx.fillStyle = c.lo; ctx.fill(); ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.8, r * 0.2); ctx.beginPath(); ctx.moveTo(x - r * 0.9, y + r * 0.1); ctx.lineTo(x + r * 0.9, y + r * 0.1); ctx.stroke(); }
@@ -425,9 +527,16 @@ function drawEye(ctx, x, y, r, a, sp) {
   }
   ctx.lineCap = 'round'; ctx.strokeStyle = c.h1; ctx.lineWidth = r * 0.5; ctx.beginPath(); ctx.moveTo(x - r * 1.3, y - r * 1.25); ctx.quadraticCurveTo(x, y - r * 1.65, x + r * 1.25, y - r * (sp.fierce && !a.sad ? 0.8 : 1.15)); ctx.stroke();
 }
-function drawDino(ctx, sp, a) {
-  const c = sp.c; a.line = c.line; a.ow *= 0.8;
-  const g = pose(sp, a), ow = a.ow, soft = !Q, fine = soft && a.fine !== false;   // the finest shading layers are skipped when a dinosaur is small on screen
+const realCols = new WeakMap();
+function desat(col) {
+  let r, g, b; if (col[0] === '#') { const n = parseInt(col.slice(1), 16); r = n >> 16; g = n >> 8 & 255; b = n & 255; } else { const m = col.match(/[\d.]+/g); if (!m) return col; [r, g, b] = m.map(Number); }
+  const L = 0.3 * r + 0.59 * g + 0.11 * b, k = 0.3; r = (r + (L - r) * k) * 0.93; g = (g + (L - g) * k) * 0.93; b = (b + (L - b) * k) * 0.93; const h2 = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0'); return '#' + h2(r) + h2(g) + h2(b);   // hex, so other colour helpers can keep mixing it
+}
+function realC(sp) { let o = realCols.get(sp); if (!o) { o = {}; for (const k in sp.c) o[k] = typeof sp.c[k] === 'string' ? desat(sp.c[k]) : sp.c[k]; realCols.set(sp, o); } return o; }
+function drawDino(ctx, sp, a) { if (!SHADE3D) return drawDino0(ctx, sp, a); const keep = sp.c; sp.c = realC(sp); try { drawDino0(ctx, sp, a); } finally { sp.c = keep; } }
+function drawDino0(ctx, sp, a) {
+  const c = sp.c; a.line = c.line; a.ow *= SHADE3D && a.fine !== false ? 0.3 : 0.8;   // sculpted bodies need only a fine edge
+  const g = pose(sp, a), ow = a.ow, soft = !Q || !!a.closeUp, fine = soft && a.fine !== false;   // close-ups always get full detail   // the finest shading layers are skipped when a dinosaur is small on screen
   const off = (d, k, rk, i0 = 0) => { const out = []; for (let i = i0; i < d.length; i++) { const p = d[i], nn = nrm(d, i); out.push([p[0] + nn[0] * p[2] * k, p[1] + nn[1] * p[2] * k, Math.max(0.6, p[2] * rk)]); } return out; };
   const far = []; for (const L of g.far) far.push(L.limb, L.foot);
   if (g.farArm) far.push(g.farArm);
@@ -445,10 +554,14 @@ function drawDino(ctx, sp, a) {
   fillTubes(ctx, [d], 0, c.base); headFill();
   // light from above: two soft bands along the back, a pale underside, and shadow where the body turns under
   const t0 = Math.floor(n * 0.07), b0 = Math.floor(n * (sp.belly0 || 0.1));
+  if (SHADE3D && fine) { ctx.save(); ctx.beginPath(); tube(ctx, d, 0); ctx.clip(); for (const [k, al] of [[0.18, 0.18], [0.3, 0.28], [0.42, 0.4], [0.55, 0.55], [0.68, 0.7], [0.82, 0.8], [0.95, 0.85]]) { ctx.globalAlpha = al; fillTubes(ctx, [off(d, k, 0.2, b0)], 0, c.belly); } ctx.globalAlpha = 1; ctx.restore(); }
+  else {
   if (soft) fillTubes(ctx, [off(d, -0.32, 0.6, t0)], 0, c.h1); if (fine) fillTubes(ctx, [off(d, -0.55, 0.36, t0)], 0, c.hi);
   fillTubes(ctx, [off(d, 0.36, 0.6, b0)], 0, c.mid); fillTubes(ctx, [off(d, 0.53, 0.43, b0)], 0, c.belly);
   if (fine) fillTubes(ctx, [off(d, 0.72, 0.27, b0)], 0, 'rgba(34,26,20,.13)'); if (soft) fillTubes(ctx, [off(d, 0.87, 0.14, b0)], 0, 'rgba(34,26,20,.2)');
+  }
   if (sp.marks) sp.marks(ctx, g, sp, a);
+  if (SHADE3D && fine) sculptBody(ctx, sp, g, a);
   if (sp.mid) { sp.mid(ctx, g, sp, a); fillTubes(ctx, [sk, jw], ow, c.line); mouthIn(); headFill(); }
   ctx.strokeStyle = c.line; ctx.lineWidth = Math.max(0.8, ow * 0.8); ctx.lineCap = 'round'; ctx.beginPath();
   for (let i = 0; i < jw.length; i++) { const p = jw[i], nn = nrm(jw, i), x = p[0] - nn[0] * p[2], y = p[1] - nn[1] * p[2]; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
@@ -465,11 +578,11 @@ function drawDino(ctx, sp, a) {
   const near = []; for (const L of g.near) near.push(L.limb, L.foot);
   if (near.length) {
     fillTubes(ctx, near, ow, c.line); fillTubes(ctx, near, 0, c.base);
-    if (soft) fillTubes(ctx, g.near.map(L => off(L.limb, 0.34, 0.44)), 0, c.h1); if (fine) fillTubes(ctx, g.near.map(L => off(L.limb, -0.6, 0.26)), 0, 'rgba(34,26,20,.16)');
-    ctx.fillStyle = '#3d352c';
-    for (const L of g.near) { const f = L.foot[1], r = f[2]; for (let k = 0; k < 3; k++) { circ(ctx, f[0] + r * 0.7 - k * r * 0.62, f[1] + r * 0.62, r * 0.2); ctx.fill(); } }
+    if (SHADE3D && fine) sculptLimbs(ctx, sp, g, a, g.near); else { if (soft) fillTubes(ctx, g.near.map(L => off(L.limb, 0.34, 0.44)), 0, c.h1); if (fine) fillTubes(ctx, g.near.map(L => off(L.limb, -0.6, 0.26)), 0, 'rgba(34,26,20,.16)'); }
+    if (SHADE3D && fine) drawClaws(ctx, g.near); else { ctx.fillStyle = '#3d352c';
+    for (const L of g.near) { const f = L.foot[1], r = f[2]; for (let k = 0; k < 3; k++) { circ(ctx, f[0] + r * 0.7 - k * r * 0.62, f[1] + r * 0.62, r * 0.2); ctx.fill(); } } }
   }
-  if (a.tex && soft) {
+  if (a.tex && soft && !(SHADE3D && fine)) {
     let p = skinPat.get(ctx); if (!p) { p = ctx.createPattern(skinTex, 'repeat'); skinPat.set(ctx, p); }
     ctx.save(); ctx.beginPath(); tube(ctx, d, 0); tube(ctx, sk, 0); tube(ctx, jw, 0); for (const t of near) tube(ctx, t, 0); if (g.arm) tube(ctx, g.arm, 0); ctx.clip();
     const b = sp.box; ctx.fillStyle = p; ctx.fillRect(b[0] - 260, b[1] - 260, b[2] - b[0] + 520, b[3] - b[1] + 520); ctx.restore();
@@ -2054,7 +2167,7 @@ function drawCareDino(x, G, mudA) {
   const n = needsOf(e); CA.time = c.t + e.seed; CA.walk = 0.9; CA.amp = 0; CA.jaw = c.jaw; CA.nod = c.nod; CA.pitch = c.pitch; CA.held = false; CA.flap = c.flap; CA.blink = c.blinkT < 0; CA.sad = !c.act && (n.hungry || n.bored || n.dirty || n.hurt || n.home);
   CA.headK = 1 + (1 - e.gk) * 0.6; CA.eyeK = 1 + (1 - e.gk) * 0.5; CA.ow = clamp(4.2 / s, 1.5, 9);
   let lx = 0.5, ly = 0; if (c.ptr) { const dx = c.ptr[0] - (G.ox + d.eye[0] * s), dy = c.ptr[1] - (G.oy + d.eye[1] * s), m = Math.hypot(dx, dy) || 1; lx = dx / m; ly = dy / m; } else if (c.food) { lx = 0.6; ly = 0.6; }
-  CA.lx = lx; CA.ly = ly; CA.tex = true; if (d.fly) x.translate(0, -16);
+  CA.lx = lx; CA.ly = ly; CA.tex = true; CA.closeUp = true; if (d.fly) x.translate(0, -16);
   drawDino(x, d, CA); if (e.bandT > 0) bandOn(x, G.box);
   if (x === octx) { const b = G.box, lg = x.createLinearGradient(0, b[1], 0, b[3]); lg.addColorStop(0, 'rgba(255,248,220,.2)'); lg.addColorStop(0.42, 'rgba(255,255,255,0)'); lg.addColorStop(1, 'rgba(24,16,30,.3)'); x.globalCompositeOperation = 'source-atop'; x.fillStyle = lg; x.fillRect(b[0] - 300, b[1] - 300, b[2] - b[0] + 600, b[3] - b[1] + 600); x.globalCompositeOperation = 'source-over'; }
   if (mudA > 0.02) { x.globalCompositeOperation = 'source-atop'; for (const m of c.mud) { x.fillStyle = 'rgba(104,72,40,' + (0.9 * mudA) + ')'; circ(x, m[0], m[1], m[2]); x.fill(); circ(x, m[0] + Math.cos(m[3]) * m[2] * 1.2, m[1] + Math.sin(m[3]) * m[2] * 0.9, m[2] * 0.45); x.fill(); x.fillStyle = 'rgba(70,46,24,' + (0.5 * mudA) + ')'; circ(x, m[0] + m[2] * 0.2, m[1] + m[2] * 0.25, m[2] * 0.5); x.fill(); } x.globalCompositeOperation = 'source-over'; }
@@ -2096,7 +2209,7 @@ homeBtn.addEventListener('click', () => {   // show the five habitats to choose 
 });
 envRow.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
   const c = care; if (!c) return; const e = c.e, pad = e.pad, env = b.dataset.env, G = careGeo(), mid = [G.ox + (G.box[0] + G.box[2]) / 2 * G.s, G.oy + (G.box[1] + G.box[3]) / 2 * G.s];
-  const before = pad.dinos.map(d => homeOk(d)); pad.env = env; dirty(); envRow.hidden = true; document.getElementById('careBar').hidden = false; paintHome();
+  const before = pad.dinos.map(d => homeOk(d)); pad.env = env; dirty(); envRow.hidden = true; document.getElementById('careBar').hidden = false; sizeCare();
   pad.dinos.forEach((d, i) => { if (!before[i] && homeOk(d)) d.needIn = gapOf(d); });
   cpuff(W / 2, H * 0.55, 'circle', 26, { cols: ['rgba(255,255,255,.9)', ENVS[env].pad], v0: 120, v1: 420, s0: 8, s1: 18, t0: 0.5, t1: 0.9, grow: 1, r: W * 0.3 });
   if (homeOk(e) && env === prefOf(e)) { c.hop = 0.45; sfx.grow(); say(e.def.name + ' loves the ' + ENVS[env].name.toLowerCase()); cpuff(mid[0], G.oy + G.box[1] * G.s, 'heart', 8, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 170, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 }); cpuff(mid[0], mid[1], 'star', 18, { cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 140, v1: 420, s0: 10, s1: 18, t0: 0.6, t1: 1.1 }); }
@@ -2421,7 +2534,7 @@ function drawFighter(x, F, sx) {
   const tl = F.tilt + F.lean * (F.flip < 0 ? -1 : 1);
   if (tl) { const py = d.swim || d.fly ? (F.box[1] + F.box[3]) / 2 : F.box[3]; x.translate(F.mid, py); x.rotate(tl); x.translate(-F.mid, -py); }
   DA.time = D.t + e.seed; DA.walk = F.walk; DA.amp = F.amp; DA.jaw = F.jaw; DA.nod = F.nod; DA.pitch = F.pitch; DA.held = false; DA.flap = F.flap; DA.blink = F.blinkT < 0 || F.asleep > 0; DA.sad = F.dizzy > 0 || F.asleep > 0 || F.hp <= HPMAX * 0.25 || !!F.e.hurt;
-  DA.headK = 1 + (1 - e.gk) * 0.6; DA.eyeK = 1 + (1 - e.gk) * 0.5; DA.ow = clamp(4.2 / s, 1.5, 9); DA.lx = 0.8; DA.ly = 0; DA.tex = true; DA.reach = F.reach; DA.swipe = F.swipe; DA.kick = F.kick; DA.tail = F.tail;
+  DA.headK = 1 + (1 - e.gk) * 0.6; DA.eyeK = 1 + (1 - e.gk) * 0.5; DA.ow = clamp(4.2 / s, 1.5, 9); DA.lx = 0.8; DA.ly = 0; DA.tex = true; DA.closeUp = true; DA.reach = F.reach; DA.swipe = F.swipe; DA.kick = F.kick; DA.tail = F.tail;
   if (d.fly) x.translate(0, -16);
   drawDino(x, d, DA); if (e.bandT > 0) bandOn(x, F.box);
   const b = F.box, lg = x.createLinearGradient(0, b[1], 0, b[3]); lg.addColorStop(0, 'rgba(255,248,220,.2)'); lg.addColorStop(0.42, 'rgba(255,255,255,0)'); lg.addColorStop(1, 'rgba(24,16,30,.3)');
@@ -2802,7 +2915,7 @@ function renderChase() {
   const dX = C.dx - cam, hop = !G.air && C.dv > W * 0.05 ? Math.abs(Math.sin(C.walk)) * 6 : 0, dY = G.gy - G.air - hop + (G.air ? Math.sin(C.t * 3) * 8 : 0);
   if (!G.air) { const w = (G.box[2] - G.box[0]) * G.ds; x.drawImage(shadowImg, dX - w * 0.55, G.gy - w * 0.12, w * 1.1, w * 0.28); }
   x.save(); x.translate(dX, dY); if (C.caught) x.rotate(Math.sin(C.t * 22) * 0.04); x.scale(G.ds, G.ds); x.translate(-G.mid, 0); if (C.d.fly) x.translate(0, -16);
-  Object.assign(CHA, { time: C.t + C.e.seed, walk: C.walk, amp: C.caught ? 0 : clamp(C.dv / (W * 0.25), 0, 1), jaw: C.jaw, nod: C.caught ? 0.2 : -0.05, pitch: 0, held: false, flap: C.flap, blink: false, lx: -0.8, ly: 0, sad: C.caught, headK: 1 + (1 - C.e.gk) * 0.6, eyeK: 1 + (1 - C.e.gk) * 0.5, ow: clamp(4 / G.ds, 1.5, 9), tex: true });
+  Object.assign(CHA, { time: C.t + C.e.seed, walk: C.walk, amp: C.caught ? 0 : clamp(C.dv / (W * 0.25), 0, 1), jaw: C.jaw, nod: C.caught ? 0.2 : -0.05, pitch: 0, held: false, flap: C.flap, blink: false, lx: -0.8, ly: 0, sad: C.caught, headK: 1 + (1 - C.e.gk) * 0.6, eyeK: 1 + (1 - C.e.gk) * 0.5, ow: clamp(4 / G.ds, 1.5, 9), tex: true, closeUp: true });
   drawDino(x, C.d, CHA); x.restore();
   // jeep with a ranger
   const jX = C.jx - cam; x.save(); x.translate(jX, G.gy + 2 - (C.jv > 20 ? Math.abs(Math.sin(C.wheel / 30)) * 2 : 0)); x.scale(G.js, G.js); drawThing(x, 'jeep', { ...A0, time: C.t, ow: clamp(3 / G.js, 2, 8), moving: C.jv > 20, cheer: 0, flare: 0, e: null }); x.restore();
@@ -2956,7 +3069,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
