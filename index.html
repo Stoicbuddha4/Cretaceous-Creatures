@@ -2400,6 +2400,41 @@ function drawTail(c, r) {
   for (let i = 0; i < 8; i++) { const an = i / 8 * TAU + 0.2; c.beginPath(); c.moveTo(bx + Math.cos(an - 0.22) * br * 0.9, by + Math.sin(an - 0.22) * br * 0.9); c.lineTo(bx + Math.cos(an) * br * 1.5, by + Math.sin(an) * br * 1.5); c.lineTo(bx + Math.cos(an + 0.22) * br * 0.9, by + Math.sin(an + 0.22) * br * 0.9); c.closePath(); c.fill(); c.stroke(); }
   c.beginPath(); c.arc(bx, by, br, 0, TAU); c.fillStyle = '#8a7358'; c.fill(); c.stroke();
 }
+/* a tapering tail along a curve: outline pass, then colour pass */
+function taperTail(c, r, pts, w0, w1, col) {
+  const P = []; for (let i = 0; i <= 16; i++) { const t = i / 16, u = 1 - t; P.push([u * u * pts[0][0] + 2 * u * t * pts[1][0] + t * t * pts[2][0], u * u * pts[0][1] + 2 * u * t * pts[1][1] + t * t * pts[2][1]]); }
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const [st, add] of [[OUT, Math.max(4, r * 0.16)], [col, 0]]) { c.strokeStyle = st; for (let i = 0; i < 16; i++) { c.lineWidth = r * (w0 + (w1 - w0) * i / 15) + add; c.beginPath(); c.moveTo(P[i][0] * r, P[i][1] * r); c.lineTo(P[i + 1][0] * r, P[i + 1][1] * r); c.stroke(); } }
+  return P;
+}
+function motionLines(c, r, x, y, n) { c.strokeStyle = OUT; c.lineWidth = Math.max(2, r * 0.08); c.lineCap = 'round'; for (let i = 0; i < n; i++) { c.beginPath(); c.arc(x * r, y * r, r * (0.35 + i * 0.22), -2.6, -1.7); c.stroke(); } }
+const TAIL_ICON = {
+  spikes(c, r) {   // Stegosaurus / Kentrosaurus: tail tip with long bony spikes
+    const P = taperTail(c, r, [[-1.2, 0.95], [-0.6, 0.3], [0.3, 0.05]], 0.42, 0.2, '#8d9a6a'), tip = P[16], a = P[7];
+    c.lineWidth = Math.max(2, r * 0.08); c.strokeStyle = OUT; c.fillStyle = '#f4ead0';
+    for (const [f, sx, sy] of [[0.15, -0.2, -1.0], [0.3, 0.3, -0.95], [0.8, 0.55, -0.9], [0.95, 0.95, -0.45]]) { const x = (a[0] + (tip[0] - a[0]) * f) * r, y = (a[1] + (tip[1] - a[1]) * f) * r;
+      c.beginPath(); c.moveTo(x - r * 0.15, y); c.lineTo(x + sx * r * 0.85, y + sy * r * 0.85); c.lineTo(x + r * 0.15, y); c.closePath(); c.fill(); c.stroke(); }
+  },
+  club: drawTail,   // Ankylosaurus: bony club
+  whip(c, r) {   // Diplodocus / Brachiosaurus: long thin whip that cracks
+    taperTail(c, r, [[-1.2, 1.0], [-0.6, -0.9], [1.0, -0.55]], 0.42, 0.05, '#9aa3a8');
+    c.lineWidth = Math.max(2, r * 0.08); c.strokeStyle = OUT; starPts(c, r * 1.12, -r * 0.6, r * 0.32, r * 0.13, 6); c.fillStyle = '#ffd93b'; c.fill(); c.stroke();
+    motionLines(c, r, 0.6, 0.2, 2);
+  },
+  swing(c, r) {   // Parasaurolophus / Iguanodon: heavy tail swing
+    taperTail(c, r, [[-1.15, 0.95], [-0.2, 0.55], [0.95, -0.5]], 0.5, 0.12, '#a07a52');
+    motionLines(c, r, 0.95, 0.75, 3);
+  },
+  fin(c, r) {   // sea reptiles: tail fluke slap with a splash
+    const P = taperTail(c, r, [[-1.2, 0.75], [-0.5, 0.6], [0.05, 0.15]], 0.42, 0.18, '#5f7f95'), t = P[16];
+    c.save(); c.translate(t[0] * r, t[1] * r); c.rotate(-0.5); c.fillStyle = '#5f7f95'; c.lineWidth = Math.max(2, r * 0.08); c.strokeStyle = OUT;
+    for (const k of [-1, 1]) { c.save(); c.rotate(k * 0.85); c.beginPath(); c.ellipse(r * 0.42, 0, r * 0.48, r * 0.17, 0, 0, TAU); c.fill(); c.stroke(); c.restore(); }
+    c.beginPath(); c.arc(0, 0, r * 0.13, 0, TAU); c.fill(); c.restore();
+    c.fillStyle = '#8fd6f0'; for (const [x, y, k] of [[0.9, -0.95, 0.13], [1.1, -0.5, 0.1], [0.55, -1.15, 0.09], [1.05, 0.0, 0.08]]) { c.beginPath(); c.arc(x * r, y * r, k * r, 0, TAU); c.fill(); c.stroke(); }
+  },
+};
+const TAIL_OF = { stego: 'spikes', kentro: 'spikes', ankylo: 'club', diplo: 'whip', brachio: 'whip', para: 'swing', iguan: 'swing', mosa: 'fin', ichthy: 'fin', elasmo: 'fin' };
+const tailIcon = id => TAIL_ICON[TAIL_OF[id]] || TAIL_ICON.swing;
 function drawHorn(c, r) {
   c.lineJoin = 'round'; c.lineWidth = Math.max(2, r * 0.09); c.strokeStyle = OUT;
   starPts(c, r * 0.55, -r * 0.7, r * 0.5, r * 0.2, 7); c.fillStyle = '#ffd93b'; c.fill(); c.stroke();
@@ -2428,7 +2463,7 @@ function paintDuelIcons() {
   if (!duel) return;
   duel.kit[0].forEach((k, i) => {
     const b = dBtns[i], cv = b.firstElementChild; b.setAttribute('aria-label', MOVE_NAME[k]); b.title = MOVE_NAME[k];
-    if (k === 'roar') { const id = duel.f[0].d.id; fitIcon(cv, [id], { box: roarBox(id), fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); } else paintIcon(cv, MOVE_ICON[k]);
+    if (k === 'roar') { const id = duel.f[0].d.id; fitIcon(cv, [id], { box: roarBox(id), fill: 0.85, pose: { jaw: 1, nod: -0.2, amp: 0 } }); } else paintIcon(cv, k === 'tail' ? tailIcon(duel.f[0].d.id) : MOVE_ICON[k]);
   });
   if (!dAgainBtn.hidden) paintIcon(dAgainBtn.firstElementChild, drawAgain);
   if (!dMedBtn.hidden) paintIcon(dMedBtn.firstElementChild, drawMed);
