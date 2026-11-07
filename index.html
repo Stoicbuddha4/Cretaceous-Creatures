@@ -169,6 +169,8 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 #chase{position:absolute;inset:0;z-index:6;background:#8fd3f2;touch-action:none}
 #chaseCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #chaseBar{justify-content:space-between;padding:0 calc(16px + env(safe-area-inset-left,0px))}
+#rescue{position:absolute;inset:0;z-index:6;background:#ffb07a;touch-action:none}
+#rescueCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #digsite{position:absolute;inset:0;z-index:6;background:#e5c58f;touch-action:none}
 #digCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .item.locked{background:#e3d6b6}
@@ -177,12 +179,12 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 .cbtn[hidden]{display:none}
 .cbtn.off{opacity:.5}
 .cbtn.on{background:var(--sun)}
-#careTop,#duelTop,#digTop,#chaseTop{position:absolute;top:14px;left:50%;transform:translateX(-50%);box-sizing:border-box;max-width:calc(100% - var(--b)*2 - 64px);text-align:center;background:var(--paper);border:3px solid var(--ink);border-radius:28px;padding:6px 20px 8px;box-shadow:0 5px 0 rgba(27,42,38,.35);pointer-events:none}
-#careName,#duelName,#digName,#chaseName{display:block;font-weight:700;font-size:clamp(17px,3.6vw,36px);line-height:1.1;overflow-wrap:break-word;text-wrap:balance}
-#careNeeds,#duelSub,#digSub,#chaseSub{display:block;font-weight:500;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em;opacity:.78}
-#careClose,#duelClose,#digClose,#chaseClose{position:absolute;top:12px;right:16px;width:calc(var(--b)*.92);height:calc(var(--b)*.92);border-radius:50%;padding:0;background:var(--sun);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);display:grid;place-items:center}
-#careClose:active,#duelClose:active,#digClose:active,#chaseClose:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
-#careClose svg,#duelClose svg,#digClose svg,#chaseClose svg{width:52%;height:52%;display:block}
+#careTop,#duelTop,#digTop,#chaseTop,#rescueTop{position:absolute;top:14px;left:50%;transform:translateX(-50%);box-sizing:border-box;max-width:calc(100% - var(--b)*2 - 64px);text-align:center;background:var(--paper);border:3px solid var(--ink);border-radius:28px;padding:6px 20px 8px;box-shadow:0 5px 0 rgba(27,42,38,.35);pointer-events:none}
+#careName,#duelName,#digName,#chaseName,#rescueName{display:block;font-weight:700;font-size:clamp(17px,3.6vw,36px);line-height:1.1;overflow-wrap:break-word;text-wrap:balance}
+#careNeeds,#duelSub,#digSub,#chaseSub,#rescueSub{display:block;font-weight:500;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em;opacity:.78}
+#careClose,#duelClose,#digClose,#chaseClose,#rescueClose{position:absolute;top:12px;right:16px;width:calc(var(--b)*.92);height:calc(var(--b)*.92);border-radius:50%;padding:0;background:var(--sun);border:3px solid var(--ink);box-shadow:0 6px 0 var(--ink);display:grid;place-items:center}
+#careClose:active,#duelClose:active,#digClose:active,#chaseClose:active,#rescueClose:active{transform:translateY(5px);box-shadow:0 1px 0 var(--ink)}
+#careClose svg,#duelClose svg,#digClose svg,#chaseClose svg,#rescueClose svg{width:52%;height:52%;display:block}
 #careEnv{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(8px,2.2vw,22px);padding:0 12px;pointer-events:none}
 #careEnv .cbtn{flex:0 1 calc(var(--b)*1.05)}
 #careBar,#duelBar,#digBar,#chaseBar{position:absolute;left:0;right:0;bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:clamp(14px,4vw,44px);padding:0 16px;pointer-events:none}
@@ -245,7 +247,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <div class="row" id="bkMain"><button id="bkSave" type="button">Back up to a file</button><button id="bkLoad" type="button" class="plain">Restore from a file</button></div>
       <div class="row" id="bkAsk" hidden><button id="bkYes" type="button">Restore it</button><button id="bkNo" type="button" class="plain">Cancel</button></div>
       <div class="row" style="margin-top:12px"><button id="bkClose" type="button" class="plain">Close</button></div>
-      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611012222</span></p>
+      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611072133</span></p>
       <input id="bkFile" type="file" accept=".json,application/json,text/plain" hidden>
     </div>
   </div>
@@ -270,6 +272,11 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <button id="chaseGo" class="cbtn" type="button" aria-label="Drive" title="Hold to drive"><canvas></canvas></button>
       <button id="chaseNet" class="cbtn" type="button" aria-label="Throw the net" title="Throw the net"><canvas></canvas></button>
     </div>
+  </div>
+  <div id="rescue" hidden role="dialog" aria-label="Volcano rescue">
+    <canvas id="rescueCv" aria-label="A volcano is erupting. Drag each dinosaur, or tap it, to send it up the safe hill."></canvas>
+    <div id="rescueTop"><span id="rescueName"></span><span id="rescueSub" aria-live="polite"></span></div>
+    <button id="rescueClose" type="button" aria-label="Back to the island" title="Back to the island"><svg viewBox="0 0 24 24" fill="none" stroke="#1b2a26" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5l-7 7 7 7"/></svg></button>
   </div>
   <div id="digsite" hidden role="dialog" aria-label="Dig for fossils">
     <canvas id="digCv" aria-label="A patch of ground with a dinosaur fossil buried in it. Rub the dirt away with your finger and tap big rocks to crack them."></canvas>
@@ -1577,7 +1584,7 @@ function updMover(m, dt) {
   if (d.air) { m.alt += (150 - m.alt) * Math.min(1, dt * 2); m.tilt += ((m.state === 'walk' ? 0.1 : 0) - m.tilt) * Math.min(1, dt * 3); }
 }
 function update(dt) {
-  if (started) escapeTick(dt);
+  if (started) { escapeTick(dt); huntTick(dt); volTick(dt); } updHunt(dt);
   for (let i = timers.length - 1; i >= 0; i--) { timers[i].t -= dt; if (timers[i].t <= 0) { const f = timers[i].fn; timers.splice(i, 1); f(); } }
   if (cam.go) { cam.x += (cam.go.x - cam.x) * Math.min(1, dt * 5); cam.y += (cam.go.y - cam.y) * Math.min(1, dt * 5); clampCam(); if (Math.hypot(cam.go.x - cam.x, cam.go.y - cam.y) < 3) cam.go = null; }
   for (const o of objs) {
@@ -1883,6 +1890,7 @@ function render() {
   }
   air.sort((a, b) => a.k - b.k); for (const it of air) drawItem(it);
   for (const e of dinos) { if (e.bub < 0.03 || e.stage === 'egg') continue; const p = dpos(e); if (vis(p[0], p[1])) drawBubble(e, p); }
+  drawHunt();
   for (const p of parts) drawPart(p);
 }
 
@@ -1976,7 +1984,7 @@ function endDrag(id, px, py, cancelled) {
       }
     } else { const m = d.m; m.held = false; if (d.over && !cancelled) { killMover(m, true); sfx.poof(); } else { settleMover(m); m.sq = 0.28; sfx.thud(); dirty(); } }
   } else if (d.mode === 'new') { if (!cancelled) dropNew(d.spawn, px, py); ghost = null; }
-  else if (!d.moved && !cancelled && d.mode !== 'paint' && d.mode !== 'pinch') { if (d.place) { dropNew(placing, px, py); ghost = null; } else if (d.spawn) { if (DEF[d.spawn].cat === 'food') spawnFromTray(d.spawn); else { setPlacing(d.spawn); sfx.pick(); } } else if (removing) removeHit(d.t); else if (picking) pickFighter(d.t); else if (d.t) tapHit(d.t); else if (py < trayTop) tapGround(px, py); }
+  else if (!d.moved && !cancelled && d.mode !== 'paint' && d.mode !== 'pinch') { if (d.place) { dropNew(placing, px, py); ghost = null; } else if (d.spawn) { if (DEF[d.spawn].cat === 'food') spawnFromTray(d.spawn); else { setPlacing(d.spawn); sfx.pick(); } } else if (removing) removeHit(d.t); else if (picking) pickFighter(d.t); else if (huntTap(px, py)) {} else if (d.t) tapHit(d.t); else if (py < trayTop) tapGround(px, py); }
   setBin();
 }
 cv.addEventListener('pointerdown', ev => {
@@ -2018,7 +2026,7 @@ function tapHit(t) {
   if (o.kind === 'pad') { if (o.style === 'lagoon' && o.dinos[0]) openCare(o.dinos[0]); else { sfx.plip(); for (const d of o.dinos) if (d.stage !== 'egg') d.hop = 0.45; } return; }
   const b = pbase(o), sc = o.sc; o.sq = 0.28;
   switch (o.type) {
-    case 'volcano': if (o.erupt <= 0) { o.erupt = 2.6; sfx.rumble(); } break;
+    case 'volcano': if (volAlert === o) { openRescue(); break; } if (o.erupt <= 0) { o.erupt = 2.6; sfx.rumble(); } break;
     case 'palm': case 'pine': case 'fern': o.shake = 0.12; sfx.rustle(); puff(b[0], b[1] + o.def.box[1] * sc * 0.7, 'circle', 6, { cols: ['#46a04c', '#6cc35f'], an: Math.PI / 2, spread: 2, v0: 20, v1: 90, g: 300, s0: 3, s1: 5, r: 26 * sc, t0: 0.7, t1: 1.2 }); break;
     case 'rock': sfx.tock(); dust(b[0], b[1]); break;
     case 'gate': o.flare = 1; sfx.fanfare(); sparkle(b[0], b[1] - 120 * sc, 10); break;
@@ -2179,7 +2187,7 @@ const cpuff = (x, y, kind, n, o) => puff(x, y, kind, n, { ...o, into: care.parts
 function careRoar() { const c = care, e = c.e; if (c.act === 'eat') return; c.roarT = e.def.voice.d * (e.stage === 0 ? 0.55 : 1); c.ringT = 0; roarSound(e.def, e.stage === 0); }
 function tapEgg() {
   const c = care, e = c.e, b = c.eggBox, cx = (b[0] + b[2]) / 2, cy = (b[1] + b[3]) / 2; e.taps = (e.taps || 0) + 1; c.sq = 0.28; c.rock = 1; dirty();
-  sfx.tock(); if (e.taps > 1) noise(0.05, 3200, 1600, 0.12 + e.taps * 0.02, 'highpass');
+  sfx.tock(); if (e.taps < 10) say(String(e.taps)); if (e.taps > 1) noise(0.05, 3200, 1600, 0.12 + e.taps * 0.02, 'highpass');
   cpuff(cx + rnd(-24, 24), cy - 10, 'tri', 2 + Math.floor(e.taps / 2), { col: '#efe6cf', an: -Math.PI / 2, spread: 2.6, v0: 160, v1: 420, g: 1200, s0: 6, s1: 12, t0: 0.5, t1: 0.9 });
   if (e.taps < 10) return;
   hatch(e); careEl.classList.remove('egg'); careNameEl.textContent = e.def.name; sizeCare(); c.hop = 0.45; c.sq = 0; c.rock = 0; sfx.grow();
@@ -2187,7 +2195,7 @@ function tapEgg() {
   cpuff(cx, cy, 'star', 24, { cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 160, v1: 480, s0: 10, s1: 20, t0: 0.6, t1: 1.2 });
 }
 function careDo(act) {
-  const c = care; if (!c || c.act || c.e.stage === 'egg') return; ac(); const G = careGeo(); c.act = act; c.actT = 0; c.roarT = 0;
+  const c = care; if (!c || c.act || c.e.stage === 'egg') return; ac(); if (miniStart(act)) return; const G = careGeo(); c.act = act; c.actT = 0; c.roarT = 0;
   if (act === 'eat') { const r = feedBtn.getBoundingClientRect(), a = app.getBoundingClientRect(); c.food = { type: foodFor(c.e.def), x0: r.left - a.left + r.width / 2, y0: r.top - a.top, x: 0, y: 0, bites: 0, wasHungry: c.e.hungryIn <= 0 }; c.food.x = c.food.x0; c.food.y = c.food.y0; c.chompT = 0.2; sfx.pop(); }
   if (act === 'play') { c.ball = { x: -40, y: G.gy - H * 0.3, vx: W * 0.42, vy: 0, r: clamp(G.s * 22, 22, 46), rot: 0 }; c.hops = 0; sfx.boing(); }
   if (act === 'wash') { noise(2.1, 5200, 3200, 0.1, 'highpass'); sfx.splash(); }
@@ -2206,11 +2214,11 @@ function updateCare(dt) {
   let jawT = 0, nodT = n.hungry && G.land ? 0.14 : 0, pitchT = 0; const mid = [G.ox + (G.box[0] + G.box[2]) / 2 * G.s, G.oy + (G.box[1] + G.box[3]) / 2 * G.s];
   if (c.roarT > 0) { c.roarT -= dt; jawT = 1; nodT = -0.22; pitchT = d.near.length === 1 ? -0.1 : 0; c.ringT -= dt; if (c.ringT <= 0) { c.ringT = 0.16; c.parts.push({ x: G.ox + d.mouthRoar[0] * G.s, y: G.oy + d.mouthRoar[1] * G.s, vx: 150, vy: -30, g: 0, life: 0, max: 0.55, kind: 'ring', col: '#fff6dc', size: 12 * G.s, rot: 0, vr: 0, grow: 3 }); } }
   if (c.act === 'eat') {
-    const F = c.food, tx = G.land ? G.mouth[0] + 8 * G.s : G.mouth[0] + 10 * G.s, ty = G.land ? G.gy + 2 : G.mouth[1] + 16 * G.s; c.actT += dt; nodT = d.eatNod; pitchT = d.eatPitch;
+    const F = c.food, cm = F.atMouth ? careMouth(G) : null, tx = cm ? cm[0] - 6 * G.s : G.land ? G.mouth[0] + 8 * G.s : G.mouth[0] + 10 * G.s, ty = cm ? cm[1] + 4 * G.s : G.land ? G.gy + 2 : G.mouth[1] + 16 * G.s; c.actT += dt; nodT = d.eatNod; pitchT = d.eatPitch;
     if (c.actT < 0.55) { const k = c.actT / 0.55; F.x = lerp(F.x0, tx, k); F.y = lerp(F.y0, ty, k) - Math.sin(Math.PI * k) * H * 0.2; }
     else {
       F.x = tx; F.y = ty; jawT = 0.45 + 0.45 * Math.sin(c.t * 15); c.chompT -= dt;
-      if (c.chompT <= 0 && F.bites < 5) { c.chompT = 0.4; F.bites++; sfx.chomp(); cpuff(G.mouth[0], G.mouth[1], 'circle', 6, { col: F.type === 'leaves' ? '#5cb85a' : F.type === 'fish' ? '#58b8d8' : '#c4453a', an: -Math.PI / 2, spread: 2.6, v0: 90, v1: 260, g: 800, s0: 4, s1: 8 }); }
+      if (c.chompT <= 0 && F.bites < 5) { c.chompT = 0.4; F.bites++; sfx.chomp(); cpuff(cm ? cm[0] : G.mouth[0], cm ? cm[1] : G.mouth[1], 'circle', 6, { col: F.type === 'leaves' ? '#5cb85a' : F.type === 'fish' ? '#58b8d8' : '#c4453a', an: -Math.PI / 2, spread: 2.6, v0: 90, v1: 260, g: 800, s0: 4, s1: 8 }); }
       if (c.actT > 2.5) { const before = e.stage; feed(e); cpuff(mid[0], G.oy + G.box[1] * G.s, 'heart', 6, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 160, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 }); if (e.stage > before) cpuff(mid[0], mid[1], 'star', 26, { cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 140, v1: 460, s0: 10, s1: 20, t0: 0.6, t1: 1.2 }); c.food = null; c.act = null; c.hop = 0.45; }
     }
   } else if (c.act === 'play') {
@@ -2224,6 +2232,7 @@ function updateCare(dt) {
     if (c.actT < 0.55) { const k = c.actT / 0.55; M.x = lerp(M.x0, tx, k); M.y = lerp(M.y0, ty, k) - Math.sin(Math.PI * k) * H * 0.2; }
     else if (!M.done) { M.done = true; e.hurt = false; e.needIn = gapOf(e); e.bandT = 120; dirty(); sfx.ding(); c.hop = 0.45; cpuff(tx, ty, 'star', 18, { cols: ['#fff', '#ffd95a', '#8fe0a0'], v0: 120, v1: 380, s0: 9, s1: 18, t0: 0.6, t1: 1.1 }); cpuff(mid[0], G.oy + G.box[1] * G.s, 'heart', 6, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 160, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 }); }
     if (c.actT > 1.4) { c.act = null; c.med = null; sfx.yay(); }
+  } else if (c.act === 'toss' || c.act === 'bath' || c.act === 'doc') { const r = updMini(dt, G); if (r.jaw != null) jawT = Math.max(jawT, r.jaw); if (r.nod != null) nodT = r.nod;
   } else if (c.act === 'wash') {
     c.actT += dt; const x0 = G.ox + G.box[0] * G.s, x1 = G.ox + G.box[2] * G.s, y0 = G.oy + G.box[1] * G.s, y1 = G.oy + G.box[3] * G.s;
     if (c.actT < 2.0) { for (let i = 0; i < 4; i++) c.parts.push({ x: rnd(x0, x1), y: -10, vx: 0, vy: rnd(700, 1000), g: 600, life: 0, max: rnd(0.5, 0.9), kind: 'circle', col: pick(['#bfe9f5', '#8fd6f0', '#fff']), size: rnd(3, 6), rot: 0, vr: 0, grow: 0 }); cpuff(rnd(x0, x1), rnd(y0, y1), 'circle', 1, { col: 'rgba(255,255,255,.85)', v0: 5, v1: 40, s0: 8, s1: 20, t0: 0.5, t1: 0.9, grow: 0.8 }); if (n.dirty) c.scrub = Math.min(1, c.scrub + dt / 1.7); }
@@ -2237,7 +2246,7 @@ function updateCare(dt) {
   homeBtn.classList.toggle('need', n.home);
   if (medBtn.hidden === n.hurt) { medBtn.hidden = !n.hurt; if (n.hurt) paintIcon(medBtn.firstElementChild, drawMed); } medBtn.classList.toggle('need', n.hurt);
   feedBtn.classList.toggle('need', n.hungry); playBtn.classList.toggle('need', n.bored); washBtn.classList.toggle('need', n.dirty);
-  const txt = [n.hurt && 'Needs medicine', n.home && ('Wants a ' + ENVS[prefOf(e)].name.toLowerCase() + ' home'), n.hungry && 'Hungry', n.bored && 'Wants to play', n.dirty && 'Needs a wash'].filter(Boolean).join(' · ') || 'Happy'; if (txt !== careNeedsEl.textContent) careNeedsEl.textContent = txt;
+  const txt = (c.act && c.msg) || [n.hurt && 'Needs medicine', n.home && ('Wants a ' + ENVS[prefOf(e)].name.toLowerCase() + ' home'), n.hungry && 'Hungry', n.bored && 'Wants to play', n.dirty && 'Needs a wash'].filter(Boolean).join(' · ') || 'Happy'; if (txt !== careNeedsEl.textContent) careNeedsEl.textContent = txt;
 }
 function finishWash(G, mid) {
   const c = care, e = c.e, was = e.dirtyIn <= 0; if (was) e.needIn = gapOf(e); e.dirtyIn = BIG; c.scrub = 0; sfx.ding(); dirty();
@@ -2303,23 +2312,24 @@ function renderCare() {
     for (const p of c.parts) drawPart(p, x); return;
   }
   const w = (G.box[2] - G.box[0]) * G.s; if (!d.swim) { x.globalAlpha = G.land ? 1 : 0.5; x.drawImage(shadowImg, W / 2 - w * 0.62, G.gy - w * 0.15, w * 1.24, w * 0.34); x.globalAlpha = 1; }
-  const mudA = e.dirtyIn <= 0 ? 1 - c.scrub : 0;
+  const mudA = e.dirtyIn <= 0 ? 1 - Math.max(c.scrub, c.bath ? (c.bath.phase === 'soap' ? c.bath.p : 1) : 0) : 0;
   octx.setTransform(1, 0, 0, 1, 0, 0); octx.clearRect(0, 0, careOff.width, careOff.height); octx.setTransform(DPR, 0, 0, DPR, 0, 0); drawCareDino(octx, G, mudA); x.drawImage(careOff, 0, 0, W, H);
   if (c.food) { const F = c.food, fs2 = clamp(G.s * 0.9, 1, 2.6) * Math.max(0.3, 1 - F.bites * 0.15); x.save(); x.translate(F.x, F.y); x.scale(fs2, fs2); DEF[F.type].draw(x, { time: c.t, ow: clamp(4 / fs2, 1.5, 6) }); x.restore(); }
   if (needsOf(e).home && !c.act) { const r = clamp(G.s * 26, 30, 52), bx = clamp(G.ox + (G.box[0] + G.box[2]) / 2 * G.s + G.s * 30, r + 20, W - r - 20), by = Math.max(G.oy + G.box[1] * G.s - 50, 104 + r * 1.2); x.lineWidth = 3; x.strokeStyle = OUT; x.fillStyle = '#fff'; for (const [dx, dy, rr] of [[-r * 0.9, r * 1.25, r * 0.16], [-r * 0.55, r * 0.95, r * 0.24]]) { circ(x, bx + dx, by + dy, rr); x.fill(); x.stroke(); } circ(x, bx, by, r * 1.15); x.fill(); x.stroke(); x.save(); x.translate(bx, by + Math.sin(c.t * 3) * 3); drawPaddock(x, r * 0.95, prefOf(e), false); x.restore(); }
   if (c.med && !c.med.done) { x.save(); x.translate(c.med.x, c.med.y); drawMed(x, clamp(G.s * 24, 20, 44)); x.restore(); }
   if (c.ball) { x.save(); x.translate(c.ball.x, c.ball.y); x.rotate(c.ball.rot); drawBall(x, c.ball.r); x.restore(); }
+  drawMini(x, G);
   for (const p of c.parts) drawPart(p, x);
 }
 careCv.addEventListener('pointerdown', ev => {
   if (!care) return; ac(); const [px, py] = local(ev), G = careGeo(); if (care.e.stage === 'egg') { const b = care.eggBox; if (b && px > b[0] - 34 && px < b[2] + 34 && py > b[1] - 34 && py < b[3] + 34) tapEgg(); ev.preventDefault(); return; } care.ptr = [px, py]; care.down = [px, py]; try { careCv.setPointerCapture(ev.pointerId); } catch (e) {}
-  const m = 30; care.onDino = px > G.ox + G.box[0] * G.s - m && px < G.ox + G.box[2] * G.s + m && py > G.oy + G.box[1] * G.s - m && py < G.oy + G.box[3] * G.s + m; care.rubbed = 0; ev.preventDefault();
+  const m = 30; care.onDino = px > G.ox + G.box[0] * G.s - m && px < G.ox + G.box[2] * G.s + m && py > G.oy + G.box[1] * G.s - m && py < G.oy + G.box[3] * G.s + m; care.rubbed = 0; ev.preventDefault(); if (miniDown(px, py, G)) care.onDino = false;
 });
 careCv.addEventListener('pointermove', ev => {
-  if (!care) return; const [px, py] = local(ev), c = care; if (c.down && c.onDino) { const dd = Math.hypot(px - c.ptr[0], py - c.ptr[1]); c.rubbed += dd; if (c.rubbed > 24) { if (Math.random() < 0.6) cpuff(px, py, 'circle', 1, { col: 'rgba(255,255,255,.85)', v0: 5, v1: 40, s0: 8, s1: 18, t0: 0.4, t1: 0.8, grow: 0.8 }); if (c.e.dirtyIn <= 0 && !c.act) c.scrub = Math.min(1, c.scrub + dd / Math.max(700, W * 1.1)); if (time - paintSnd > 0.12) { paintSnd = time; tone(700 + rnd(500), 1300, 0.05, 'sine', 0.08); } } }
+  if (!care) return; const [px, py] = local(ev), c = care; if (care.e.stage !== 'egg' && miniMove(px, py)) { c.ptr = [px, py]; return; } if (c.down && c.onDino) { const dd = Math.hypot(px - c.ptr[0], py - c.ptr[1]); c.rubbed += dd; if (c.rubbed > 24) { if (Math.random() < 0.6) cpuff(px, py, 'circle', 1, { col: 'rgba(255,255,255,.85)', v0: 5, v1: 40, s0: 8, s1: 18, t0: 0.4, t1: 0.8, grow: 0.8 }); if (c.e.dirtyIn <= 0 && !c.act) c.scrub = Math.min(1, c.scrub + dd / Math.max(700, W * 1.1)); if (time - paintSnd > 0.12) { paintSnd = time; tone(700 + rnd(500), 1300, 0.05, 'sine', 0.08); } } }
   c.ptr = [px, py];
 });
-const careUp = ev => { const c = care; if (!c) return; if (c.down && c.onDino && c.rubbed < 24) careRoar(); c.down = null; c.ptr = null; };
+const careUp = ev => { const c = care; if (!c) return; if (miniUp()) { c.down = null; c.ptr = null; return; } if (c.down && c.onDino && c.rubbed < 24) careRoar(); c.down = null; c.ptr = null; };
 careCv.addEventListener('pointerup', careUp); careCv.addEventListener('pointercancel', careUp);
 feedBtn.addEventListener('click', () => careDo('eat')); playBtn.addEventListener('click', () => careDo('play'));
 function paintHome() { if (!care) return; const e = care.e; homeBtn.hidden = !!e.def.swim; if (!homeBtn.hidden) paintIcon(homeBtn.firstElementChild, (c, r) => drawPaddock(c, r * 1.3, e.pad ? e.pad.env : null, true)); }
@@ -2338,6 +2348,352 @@ envRow.querySelectorAll('button').forEach(b => b.addEventListener('click', () =>
 })); medBtn.addEventListener('click', () => careDo('med')); washBtn.addEventListener('click', () => careDo('wash'));
 document.getElementById('careClose').addEventListener('click', closeCare);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeCare(); });
+
+/* ============ more mini-games ============
+   In the close-up: feeding toss (throw the right food into its mouth), bath time (rub up bubbles, then hose them off) and the dino doctor (temperature, say ahh, bandage).
+   On the island: the egg hunt (find the hidden eggs) and the volcano rescue (help the dinosaurs up the safe hill). Nothing here can be lost. */
+const NUMW = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+const wrongFood = d => d.diet === 'plant' ? 'meat' : 'leaves';
+const dietWord = t => t === 'leaves' ? 'plants' : t === 'fish' ? 'fish' : 'meat';
+const careMouth = G => { const d = care.e.def; return [G.ox + d.mouthRoar[0] * G.s, G.oy + d.mouthRoar[1] * G.s - (d.fly ? 16 * G.s : 0)]; };
+const careMid = G => [G.ox + (G.box[0] + G.box[2]) / 2 * G.s, G.oy + (G.box[1] + G.box[3]) / 2 * G.s];
+function careHearts(G, n = 6) { const m = careMid(G); cpuff(m[0], G.oy + G.box[1] * G.s, 'heart', n, { col: '#f06292', an: -Math.PI / 2, spread: 1.6, v0: 80, v1: 160, s0: 14, s1: 22, t0: 1, t1: 1.6, r: 60 }); }
+function careStars(x, y, n = 18) { cpuff(x, y, 'star', n, { cols: ['#ffd95a', '#fff6dc', '#ffb01f'], v0: 140, v1: 420, s0: 10, s1: 18, t0: 0.6, t1: 1.1 }); }
+function miniStart(act) {
+  const c = care, n = needsOf(c.e);
+  if (act === 'eat') { startToss(); return true; }
+  if (act === 'wash' && n.dirty) { startBath(); return true; }
+  if (act === 'med' && n.hurt) { startDoc(); return true; }
+  return false;
+}
+
+/* ---- feeding toss ---- */
+function startToss() {
+  const c = care, d = c.e.def, G = careGeo(), right = foodFor(d), wrong = wrongFood(d), r = clamp(G.s * 30, 34, 60);
+  const y = Math.min(c.barTop - r * 1.4, G.gy + r * 0.2), sides = Math.random() < 0.5 ? [0.13, 0.87] : [0.87, 0.13];
+  c.act = 'toss'; c.actT = 0; c.roarT = 0;
+  c.toss = { items: [right, wrong].map((type, i) => ({ type, ok: i === 0, hx: W * sides[i], hy: y, x: W * sides[i], y: y + 80, vx: 0, vy: 0, fly: false, rot: 0, r })), drag: null, hist: [], wasHungry: c.e.hungryIn <= 0, msg: null };
+  sfx.pop(); say('Throw the food into its mouth!');
+}
+function tossVel(it, m, T = 0.6) { return [(m[0] - it.x) / T, (m[1] - it.y) / T - 0.5 * 1500 * T]; }
+function catchFood(it, G) {
+  const c = care, T = c.toss; c.toss = null; c.msg = null;
+  c.food = { type: it.type, x0: it.x, y0: it.y, x: it.x, y: it.y, bites: 0, wasHungry: T.wasHungry, atMouth: true }; c.act = 'eat'; c.actT = 0.3; c.chompT = 0.15;
+  sfx.chomp(); say('Yum!'); const m = careMouth(G); careStars(m[0], m[1], 10);
+}
+function rejectFood(it) {
+  const c = care, right = foodFor(c.e.def); it.fly = false; it.back = 1; c.shake = 0.5; c.sq = 0.2; sfx.boing();
+  c.toss.msg = 'Yuck! ' + c.e.def.name + ' eats ' + dietWord(right); say('Yuck! It eats ' + dietWord(right));
+  cpuff(it.x, it.y, 'circle', 8, { col: 'rgba(255,255,255,.9)', v0: 60, v1: 200, s0: 4, s1: 9, t0: 0.4, t1: 0.7 });
+}
+function updToss(dt, G) {
+  const c = care, T = c.toss, m = careMouth(G), catchR = clamp(G.s * 60, 64, 140); c.msg = T.msg || 'Throw the right food into its mouth!';
+  for (const it of T.items) {
+    if (it === T.drag) continue;
+    if (it.fly) {
+      it.vy += 1500 * dt; it.x += it.vx * dt; it.y += it.vy * dt; it.rot += dt * 9;
+      if (Math.hypot(it.x - m[0], it.y - m[1]) < catchR) { if (it.ok) { catchFood(it, G); return { jaw: 1 }; } rejectFood(it); continue; }
+      if (it.y > H + 80 || it.x < -100 || it.x > W + 100 || (it.vy > 0 && it.y > it.hy + 60)) { it.fly = false; it.back = 1; }
+    } else { const k = Math.min(1, dt * (it.back > 0 ? 7 : 9)); it.back = Math.max(0, (it.back || 0) - dt * 2); it.x += (it.hx - it.x) * k; it.y += (it.hy + Math.sin(c.t * 3 + it.hx) * 5 - it.y) * k; it.rot *= 1 - k; }
+  }
+  return { jaw: 0.8, nod: -0.05 };
+}
+function tossDown(px, py) {
+  const T = care.toss; for (const it of T.items) if (Math.hypot(px - it.x, py - it.y) < it.r * 1.6) { T.drag = it; it.fly = false; it.back = 0; T.hist = [[px, py, performance.now()]]; T.d0 = [px, py]; sfx.pick(); return true; }
+  return true;
+}
+function tossMove(px, py) { const T = care.toss, it = T.drag; if (!it) return; it.x = px; it.y = py; T.hist.push([px, py, performance.now()]); if (T.hist.length > 6) T.hist.shift(); }
+function tossUp() {
+  const c = care, T = c.toss, it = T.drag; if (!it) return; T.drag = null; const G = careGeo(), m = careMouth(G), now = performance.now();
+  const h0 = T.hist.find(h => now - h[2] < 120) || T.hist[0], dtv = Math.max(0.016, (now - h0[2]) / 1000), vx = (it.x - h0[0]) / dtv, vy = (it.y - h0[1]) / dtv, moved = Math.hypot(it.x - T.d0[0], it.y - T.d0[1]);
+  if (Math.hypot(it.x - m[0], it.y - m[1]) < clamp(G.s * 60, 64, 140)) { if (it.ok) catchFood(it, G); else rejectFood(it); return; }
+  const sp = Math.hypot(vx, vy), dist = Math.hypot(m[0] - it.x, m[1] - it.y), toward = (vx * (m[0] - it.x) + vy * (m[1] - it.y)) / Math.max(1, sp * dist);
+  if (moved >= 18 && (sp < 200 || toward < -0.2)) { it.back = 1; return; }   // dragged and let go, or flicked away: it goes back
+  const aim = tossVel(it, m, moved < 18 ? 0.6 : clamp(dist / Math.max(sp, 600), 0.35, 0.7));   // a tap or a flick towards it: it always lands in the mouth
+  it.vx = aim[0]; it.vy = aim[1];
+  it.fly = true; sfx.boing(); noise(0.15, 1800, 700, 0.12, 'bandpass');
+}
+function drawToss(x, G) {
+  const T = care.toss; if (!T) return;
+  for (const it of T.items) {
+    const s = it.r / 26; x.save(); x.translate(it.x, it.y); x.rotate(it.rot);
+    if (!it.fly && it !== T.drag) { x.globalAlpha = 0.35 + 0.25 * Math.sin(care.t * 5); x.fillStyle = '#fff6dc'; circ(x, 0, 0, it.r * 1.25); x.fill(); x.globalAlpha = 1; }
+    x.scale(s, s); DEF[it.type].draw(x, { time: care.t, ow: clamp(4 / s, 1.5, 6) }); x.restore();
+  }
+}
+
+/* ---- bath time ---- */
+function startBath() { const c = care; c.act = 'bath'; c.actT = 0; c.roarT = 0; c.bath = { phase: 'soap', foam: [], need: 20, p: 0, last: null, popT: 0, shakeT: 0 }; sfx.pop(); say('Rub rub rub! Make lots of bubbles!'); }
+function bathMove(px, py, G) {
+  const c = care, B = c.bath; if (!c.down) return;
+  if (B.phase === 'soap') {
+    const inside = px > G.ox + G.box[0] * G.s - 20 && px < G.ox + G.box[2] * G.s + 20 && py > G.oy + G.box[1] * G.s - 20 && py < G.oy + G.box[3] * G.s + 20; if (!inside) return;
+    if (B.last && Math.hypot(px - B.last[0], py - B.last[1]) < Math.max(18, G.s * 14)) return; B.last = [px, py];
+    B.foam.push({ x: (px - G.ox) / G.s + rnd(-6, 6), y: (py - G.oy) / G.s + rnd(-6, 6), r: rnd(12, 22), ph: Math.random() * TAU, t: 0 });
+    if (Math.random() < 0.5) noise(0.06, 3000, 1500, 0.08, 'bandpass'); cpuff(px, py, 'circle', 2, { col: 'rgba(214,243,251,.95)', v0: 20, v1: 90, s0: 5, s1: 10, t0: 0.5, t1: 0.9, grow: 0.6 });
+    B.p = Math.min(1, B.foam.length / B.need);
+    if (B.p >= 1) { B.phase = 'rinse'; B.needUp = true; sfx.ding(); say('Now spray the bubbles away!'); }
+  } else if (B.phase === 'rinse' && !B.needUp) rinseAt(px, py, G);
+}
+function rinseAt(px, py, G) {
+  const c = care, B = c.bath, rr = Math.max(60, G.s * 44);
+  for (let i = B.foam.length - 1; i >= 0; i--) { const f = B.foam[i], fx = G.ox + f.x * G.s, fy = G.oy + f.y * G.s; if (Math.hypot(fx - px, fy - py) < rr) { B.foam.splice(i, 1); cpuff(fx, fy, 'circle', 3, { col: 'rgba(255,255,255,.9)', v0: 60, v1: 220, g: 600, s0: 3, s1: 7, t0: 0.3, t1: 0.6 }); if (B.popT <= 0) { B.popT = 0.08; sfx.plip(); } } }
+  if (!B.foam.length) { B.phase = 'shake'; B.shakeT = 0; c.shake = 0.8; sfx.rustle(); }
+}
+function updBath(dt, G) {
+  const c = care, B = c.bath; B.popT -= dt; for (const f of B.foam) f.t += dt;
+  if (B.phase === 'soap') c.msg = B.foam.length ? 'Keep rubbing! More bubbles!' : 'Rub it with your finger to make bubbles!';
+  else if (B.phase === 'rinse') {
+    c.msg = 'Spray the bubbles away!';
+    if (c.down && c.ptr && !B.needUp) { const [px, py] = c.ptr, nx = px + 40, ny = py + 56; rinseAt(px, py, G); for (let i = 0; i < 3; i++) c.parts.push({ x: nx, y: ny, vx: (px - nx) * rnd(5, 8) + rnd(-40, 40), vy: (py - ny) * rnd(5, 8) + rnd(-40, 40), g: 900, life: 0, max: rnd(0.25, 0.45), kind: 'circle', col: pick(['#bfe9f5', '#8fd6f0', '#fff']), size: rnd(3, 6), rot: 0, vr: 0, grow: 0 }); if (Math.random() < dt * 8) noise(0.12, 5200, 3200, 0.06, 'highpass'); }
+    else if (c.t % 2 < dt) { /* nudge */ }
+  } else {
+    B.shakeT += dt; c.msg = 'Shake shake!';
+    if (Math.random() < 0.7) { const m = careMid(G); c.parts.push({ x: m[0] + rnd(-1, 1) * (G.box[2] - G.box[0]) * G.s * 0.4, y: m[1] + rnd(-0.4, 0.4) * (G.box[3] - G.box[1]) * G.s, vx: rnd(-500, 500), vy: rnd(-500, -150), g: 1200, life: 0, max: rnd(0.4, 0.8), kind: 'circle', col: pick(['#bfe9f5', '#8fd6f0']), size: rnd(3, 6), rot: 0, vr: 0, grow: 0 }); }
+    if (B.shakeT > 1) { c.bath = null; c.act = null; c.msg = null; finishWash(G, careMid(G)); c.hop = 0.45; say('All clean!'); }
+  }
+  return { jaw: B.phase === 'shake' ? 0.4 : 0.15 };
+}
+function drawBath(x, G) {
+  const c = care, B = c.bath; if (!B) return; const sx = c.shake > 0 ? Math.sin(c.t * 60) * 7 : 0;
+  for (const f of B.foam) {
+    const k = Math.min(1, f.t / 0.18), r = f.r * G.s * k * (1 + Math.sin(c.t * 4 + f.ph) * 0.05), fx = G.ox + sx + f.x * G.s, fy = G.oy + f.y * G.s;
+    x.fillStyle = 'rgba(255,255,255,.94)'; x.strokeStyle = 'rgba(120,190,220,.8)'; x.lineWidth = 2;
+    for (const [dx, dy, kk] of [[0, 0, 1], [r * 0.7, r * 0.2, 0.7], [-r * 0.6, r * 0.35, 0.65], [r * 0.1, -r * 0.6, 0.6]]) { circ(x, fx + dx, fy + dy, r * kk); x.fill(); x.stroke(); }
+    x.fillStyle = 'rgba(170,225,245,.9)'; circ(x, fx - r * 0.3, fy - r * 0.3, r * 0.18); x.fill();
+  }
+  if (B.phase === 'rinse') {   // the hose follows his finger
+    const p = c.ptr || [W * 0.75, c.barTop - 80], nx = p[0] + 40, ny = p[1] + 56;
+    x.lineCap = 'round'; x.strokeStyle = OUT; x.lineWidth = 20; x.beginPath(); x.moveTo(W + 20, H + 20); x.quadraticCurveTo(nx + 40, H, nx + 14, ny + 22); x.stroke(); x.strokeStyle = '#4caf50'; x.lineWidth = 13; x.stroke();
+    x.save(); x.translate(nx, ny); x.rotate(Math.atan2(p[1] - ny, p[0] - nx)); x.fillStyle = '#ffc93c'; x.strokeStyle = OUT; x.lineWidth = 4; rrect(x, -18, -12, 40, 24, 8); x.fill(); x.stroke(); x.fillStyle = '#8fd6f0'; rrect(x, 18, -8, 12, 16, 4); x.fill(); x.stroke(); x.restore();
+    if (!c.down) { const a = 0.5 + 0.5 * Math.sin(c.t * 6); x.globalAlpha = a; x.fillStyle = '#fff'; circ(x, p[0], p[1], 16); x.fill(); x.globalAlpha = 1; }
+  }
+}
+
+/* ---- dino doctor ---- */
+const DOC = [
+  { k: 'temp', msg: 'Tap to check its temperature', say: "Let's check its temperature. Tap!" },
+  { k: 'ahh', msg: 'Tap its mouth: say ahh!', say: 'Open wide! Say ahh!' },
+  { k: 'band', msg: 'Put the bandage on the boo-boo', say: 'Now put the bandage on the boo-boo' },
+];
+function startDoc() { const c = care; c.act = 'doc'; c.actT = 0; c.roarT = 0; c.doc = { step: 0, busy: 0, t: 0, band: null, done: false }; sfx.pop(); say(DOC[0].say); }
+function booPos(G) { const b = G.box, w = b[2] - b[0], h = b[3] - b[1], d = care.e.def; return [G.ox + ((b[0] + b[2]) / 2 + w * 0.1) * G.s, G.oy + (b[1] + h * 0.45) * G.s - (d.fly ? 16 * G.s : 0)]; }
+const toolRest = () => [W / 2, care.barTop - Math.max(60, H * 0.08)];
+function docNext() { const D = care.doc; D.step++; D.busy = 0; D.t = 0; if (D.step < DOC.length) { sfx.ding(); say(DOC[D.step].say); } }
+function docApply(G) {
+  const c = care, e = c.e, D = c.doc, p = booPos(G); D.done = true; D.busy = 1.4; D.t = 0; e.hurt = false; e.needIn = gapOf(e); e.bandT = 120; dirty(); sfx.ding(); c.hop = 0.45;
+  cpuff(p[0], p[1], 'star', 18, { cols: ['#fff', '#ffd95a', '#8fe0a0'], v0: 120, v1: 380, s0: 9, s1: 18, t0: 0.6, t1: 1.1 }); careHearts(G, 8); say('All better!');
+}
+function docDown(px, py, G) {
+  const D = care.doc; if (D.busy > 0 || D.done) return true; const st = DOC[D.step].k;
+  if (st === 'temp' || st === 'ahh') { D.busy = st === 'temp' ? 2.2 : 2; D.t = 0; if (st === 'temp') sfx.pop(); else { say('Ahhhh'); sfx.boing(); } return true; }
+  const r = toolRest(), b = booPos(G);
+  if (Math.hypot(px - b[0], py - b[1]) < 90) { docApply(G); return true; }
+  if (Math.hypot(px - r[0], py - r[1]) < 90) { D.band = [px, py]; sfx.pick(); }
+  return true;
+}
+function docMove(px, py) { const D = care.doc; if (D.band) D.band = [px, py]; }
+function docUp() { const D = care.doc, G = careGeo(); if (!D.band) return; const b = booPos(G); if (Math.hypot(D.band[0] - b[0], D.band[1] - b[1]) < 110) docApply(G); D.band = null; }
+function updDoc(dt, G) {
+  const c = care, D = c.doc; D.t += dt; c.msg = D.done ? 'All better!' : DOC[D.step].msg; let jaw = 0.1, nod = null;
+  if (D.done) { if (D.t > D.busy) { c.doc = null; c.act = null; c.msg = null; sfx.yay(); } return { jaw: 0.3 }; }
+  const st = DOC[D.step].k;
+  if (D.busy > 0) {
+    if (st === 'temp') { jaw = 0.35; if (D.t > 0.7 && D.t - dt <= 0.7 || D.t > 1.05 && D.t - dt <= 1.05 || D.t > 1.4 && D.t - dt <= 1.4) sfx.tock(); if (D.t > 1.7 && D.t - dt <= 1.7) { sfx.ding(); const m = careMouth(G); careStars(m[0], m[1] - 40, 8); } }
+    if (st === 'ahh') { jaw = 1; nod = -0.2; }
+    if (D.t >= D.busy) docNext();
+  }
+  return { jaw, nod };
+}
+function drawThermo(x, r, k) {
+  x.save(); x.lineJoin = 'round'; x.strokeStyle = OUT; x.lineWidth = Math.max(2, r * 0.1);
+  rrect(x, -r * 0.18, -r, r * 0.36, r * 1.6, r * 0.18); x.fillStyle = '#fff'; x.fill(); x.stroke(); circ(x, 0, r * 0.72, r * 0.3); x.fillStyle = '#e2483d'; x.fill(); x.stroke();
+  x.fillStyle = '#e2483d'; x.fillRect(-r * 0.07, r * 0.5 - k * r * 1.3, r * 0.14, k * r * 1.3); x.restore();
+}
+function drawTorch(x, r) {
+  x.save(); x.lineJoin = 'round'; x.strokeStyle = OUT; x.lineWidth = Math.max(2, r * 0.1);
+  rrect(x, -r, -r * 0.3, r * 1.3, r * 0.6, r * 0.2); x.fillStyle = '#3f9aae'; x.fill(); x.stroke();
+  x.beginPath(); x.moveTo(r * 0.3, -r * 0.3); x.lineTo(r * 0.75, -r * 0.55); x.lineTo(r * 0.75, r * 0.55); x.lineTo(r * 0.3, r * 0.3); x.closePath(); x.fillStyle = '#ffc93c'; x.fill(); x.stroke(); x.restore();
+}
+function drawDoc(x, G) {
+  const c = care, D = c.doc; if (!D || D.done) return; const st = DOC[D.step].k, rest = toolRest(), r = clamp(G.s * 30, 30, 54), bob = Math.sin(c.t * 4) * 6, m = careMouth(G);
+  const ring = (px, py) => { x.globalAlpha = 0.3 + 0.2 * Math.sin(c.t * 5); x.fillStyle = '#fff6dc'; circ(x, px, py, r * 1.35); x.fill(); x.globalAlpha = 1; };
+  if (st === 'temp') {
+    let px = rest[0], py = rest[1] + bob, ang = 0, k = 0.15;
+    if (D.busy > 0) { const f = Math.min(1, D.t / 0.5); px = lerp(rest[0], m[0] - r * 0.2, f); py = lerp(rest[1], m[1] + r * 0.3, f) - Math.sin(Math.PI * f) * 80; ang = -1.1 * f; k = 0.15 + 0.75 * clamp((D.t - 0.5) / 1.2, 0, 1); } else ring(px, py);
+    x.save(); x.translate(px, py); x.rotate(ang); drawThermo(x, r, k); x.restore();
+  } else if (st === 'ahh') {
+    let px = rest[0], py = rest[1] + bob;
+    if (D.busy > 0) { const f = Math.min(1, D.t / 0.4); px = lerp(rest[0], m[0] + r * 2.2, f); py = lerp(rest[1], m[1] + r * 1.2, f);
+      const a = Math.atan2(m[1] - py, m[0] - px); x.save(); x.translate(px, py); x.rotate(a); if (f >= 1) { const g = x.createLinearGradient(0, 0, r * 4, 0); g.addColorStop(0, 'rgba(255,240,160,.85)'); g.addColorStop(1, 'rgba(255,240,160,0)'); x.fillStyle = g; x.beginPath(); x.moveTo(r * 0.7, -r * 0.4); x.lineTo(r * 4.2, -r * 1.3); x.lineTo(r * 4.2, r * 1.3); x.lineTo(r * 0.7, r * 0.4); x.closePath(); x.fill(); } drawTorch(x, r); x.restore(); }
+    else { ring(px, py); x.save(); x.translate(px, py); x.rotate(-0.5); drawTorch(x, r); x.restore(); const a = 0.4 + 0.4 * Math.sin(c.t * 6); x.globalAlpha = a; x.strokeStyle = '#fff'; x.lineWidth = 5; circ(x, m[0], m[1], r * 0.9); x.stroke(); x.globalAlpha = 1; }
+  } else {
+    const b = booPos(G), pul = 1 + 0.12 * Math.sin(c.t * 6); x.globalAlpha = 0.55; x.fillStyle = '#ff6b6b'; circ(x, b[0], b[1], r * 0.7 * pul); x.fill(); x.globalAlpha = 1; x.strokeStyle = '#fff'; x.lineWidth = 3; x.setLineDash([8, 8]); circ(x, b[0], b[1], r * 1.1 * pul); x.stroke(); x.setLineDash([]);
+    const p = D.band || [rest[0], rest[1] + bob]; if (!D.band) ring(p[0], p[1]); drawBandage(x, p[0], p[1], r * 0.75);
+    if (!D.band) { const k = (c.t * 0.6) % 1, hx = lerp(p[0], b[0], k), hy = lerp(p[1], b[1], k); x.globalAlpha = 1 - k; x.fillStyle = '#fff'; circ(x, hx, hy, 12); x.fill(); x.globalAlpha = 1; }
+  }
+}
+
+/* ---- hooks the close-up calls ---- */
+function updMini(dt, G) { const c = care; return c.act === 'toss' ? updToss(dt, G) : c.act === 'bath' ? updBath(dt, G) : c.act === 'doc' ? updDoc(dt, G) : {}; }
+function drawMini(x, G) { const c = care; if (c.act === 'toss') drawToss(x, G); if (c.bath) drawBath(x, G); if (c.act === 'doc') drawDoc(x, G); }
+function miniDown(px, py, G) { const c = care; if (c.act === 'toss') return tossDown(px, py); if (c.act === 'bath') { c.bath.last = null; c.bath.needUp = false; if (c.bath.phase === 'rinse') rinseAt(px, py, G); return true; } if (c.act === 'doc') return docDown(px, py, G); return false; }
+function miniMove(px, py) {
+  const c = care, G = careGeo();
+  if (c.act === 'toss') { tossMove(px, py); return true; }
+  if (c.act === 'bath') { bathMove(px, py, G); return true; }
+  if (c.act === 'doc') { docMove(px, py); return true; }
+  if (!c.act && c.down && c.onDino && needsOf(c.e).dirty && Math.hypot(px - c.down[0], py - c.down[1]) > 24) { startBath(); bathMove(px, py, G); return true; }   // rubbing a muddy dinosaur starts the bath
+  return false;
+}
+function miniUp() { const c = care; if (c.act === 'toss') { tossUp(); return true; } if (c.act === 'doc') { docUp(); return true; } if (c.act === 'bath') return true; return false; }
+
+/* ---- egg hunt on the island ---- */
+let hunt = null, huntT = rnd(150, 300);
+function huntTick(dt) {
+  if (hunt || care || duel || dig || chase || rescue || placing || dinos.some(d => d.esc)) return;
+  huntT -= dt; if (huntT > 0) return; huntT = rnd(480, 780); startHunt();
+}
+function startHunt(n = 3) {
+  const eggs = [];
+  for (let k = 0; k < 900 && eggs.length < n; k++) {
+    const gx = Math.floor(rnd(1, N - 1)), gy = Math.floor(rnd(1, N - 1)); if (tiles[ti(gx, gy)] !== 0 || occ[ti(gx, gy)]) continue;
+    const w = g2w(gx + 0.5, gy + 0.5), s = w2s(w[0], w[1]); if (s[0] < 90 || s[0] > W - 90 || s[1] < 130 || s[1] > trayTop - 70) continue;
+    if (eggs.some(e => { const q = w2s(e.x, e.y); return Math.hypot(q[0] - s[0], q[1] - s[1]) < 150; })) continue;
+    eggs.push({ x: w[0], y: w[1], col: pick(['#f7a8c4', '#8fd6f0', '#c9a7f0', '#ffd95a', '#8fe0a0']), ph: Math.random() * TAU, got: 0, sparkT: rnd(1, 3) });
+  }
+  if (!eggs.length) return false;
+  hunt = { eggs, n: eggs.length, got: 0 }; sfx.fanfare(); banner('Egg hunt!', 'Find ' + eggs.length + ' hidden eggs', 4200); say('Egg hunt! Can you find ' + NUMW[eggs.length].toLowerCase() + ' eggs?'); return true;
+}
+function updHunt(dt) {
+  if (!hunt) return;
+  for (const e of hunt.eggs) { if (e.got) { e.got += dt; continue; } e.sparkT -= dt; if (e.sparkT <= 0) { e.sparkT = rnd(3, 5); sparkle(e.x, e.y - 30, 3); } }
+  hunt.eggs = hunt.eggs.filter(e => !e.got || e.got < 0.6);
+}
+const huntK = () => Math.max(0.62, 46 / (56 * cam.z));   // eggs stay a findable size however far out the island is zoomed
+function drawHunt() {
+  if (!hunt) return; const K = huntK();
+  for (const e of hunt.eggs) {
+    const pop = e.got ? Math.min(1, e.got / 0.6) : 0, wig = Math.sin(time * 2 + e.ph) > 0.92 ? Math.sin(time * 30) * 0.18 : Math.sin(time * 1.3 + e.ph) * 0.03;
+    ctx.save(); ctx.translate(e.x, e.y - pop * 60 * K); ctx.globalAlpha = 1 - pop * pop; ctx.rotate(wig); ctx.scale(K * (1 + pop * 0.6), K * (1 + pop * 0.6)); drawEgg(ctx, e.col, { ow: 2.6 }, 0); ctx.restore();
+    if (!e.got) {   // a tuft of grass hides the bottom of it
+      ctx.save(); ctx.translate(e.x, e.y + 2 * K); ctx.scale(K / 0.62, K / 0.62); ctx.lineCap = 'round';
+      for (const [dx, h, a, col] of [[-16, 20, -0.35, '#3f8f3a'], [-8, 26, -0.15, '#4fa04a'], [0, 22, 0.05, '#3f8f3a'], [8, 27, 0.2, '#4fa04a'], [16, 19, 0.4, '#3f8f3a'], [-2, 17, -0.05, '#66b85a']]) { ctx.strokeStyle = col; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(dx, 0); ctx.quadraticCurveTo(dx + a * h * 0.5, -h * 0.6, dx + a * h, -h + Math.sin(time * 2 + dx) * 1.5); ctx.stroke(); }
+      ctx.restore();
+    }
+  }
+}
+function huntTap(px, py) {
+  if (!hunt) return false; const w = s2w(px, py), K = huntK(), rr = 40 * K + 20 / cam.z;
+  const e = hunt.eggs.find(e => !e.got && Math.hypot(w[0] - e.x, w[1] - (e.y - 18 * K / 0.62)) < rr); if (!e) return false;
+  e.got = 0.001; hunt.got++; sfx.pop(); sfx.ding(); sparkle(e.x, e.y - 30, 12); puff(e.x, e.y - 20, 'star', 10, { cols: ['#ffd95a', '#fff6dc', e.col], v0: 120, v1: 320, s0: 6, s1: 12, t0: 0.6, t1: 1 });
+  say(NUMW[hunt.got] + '!'); banner(hunt.got + (hunt.got === 1 ? ' egg' : ' eggs') + ' found!', hunt.got < hunt.n ? (hunt.n - hunt.got) + ' more to find' : '', 2200);
+  if (hunt.got >= hunt.n) {
+    const H0 = hunt; later(0.9, () => { if (hunt !== H0) return; hunt = null; sfx.fanfare(); banner('You found all the eggs!', 'Hooray!', 3600); say('You found all the eggs! Hooray!');
+      for (const d of dinos) if (d.stage !== 'egg' && !d.esc) { d.hop = 0.45; const p = dpos(d); if (vis(p[0], p[1])) sparkle(p[0], p[1] - 40, 4); }
+      for (const m of movers) if (m.type === 'visitor') { m.cheer = 1.4; m.hop = 0.45; } });
+  }
+  return true;
+}
+
+/* ---- volcano rescue ---- */
+const rescueEl = document.getElementById('rescue'), rescueCv = document.getElementById('rescueCv'), rctx = rescueCv.getContext('2d'), rescueNameEl = document.getElementById('rescueName'), rescueSubEl = document.getElementById('rescueSub');
+let rescue = null, volAlert = null, volT = rnd(360, 600), volBurst = 0;
+function volTick(dt) {
+  if (volAlert) { if (volAlert.gone || volAlert.held) { volAlert = null; return; } volBurst -= dt; if (volBurst <= 0) { volBurst = 3; if (volAlert.erupt <= 0) volAlert.erupt = 0.7; sfx.rumble(); shake = Math.max(shake, 3); } return; }
+  if (rescue || care || duel || dig || chase || hunt || placing || dinos.some(d => d.esc)) return;
+  volT -= dt; if (volT > 0) return; volT = rnd(720, 1080);
+  const vs = objs.filter(o => o.type === 'volcano' && !o.gone && !o.held); if (!vs.length || !dinos.some(d => d.stage !== 'egg' && !d.def.swim)) return;
+  volAlert = pick(vs); volBurst = 0; const c = ocenter(volAlert); ensureVisible(c[0], c[1]); banner('The volcano is rumbling!', 'Tap the volcano to help the dinosaurs', 5000); say('Uh oh! The volcano is rumbling! Tap the volcano!'); sfx.alarm();
+}
+function rescueGeo() { const gy = H * 0.84; return { gy, hx: W * 0.16, hr: W * 0.24, ht: H * 0.2 }; }
+const hillY = (G, x) => G.gy - G.ht * Math.max(0, 1 - ((x - G.hx) / G.hr) ** 2);
+function openRescue() {
+  if (rescue || care || duel || dig || chase) return; ac(); setRemoving(false); setPicking(false); if (paint) setPaint(paint);
+  const pool = dinos.filter(d => d.stage !== 'egg' && !d.def.swim && !d.esc).sort(() => Math.random() - 0.5), seen = new Set(), picks = [];
+  for (const e of pool) { if (picks.length >= 3) break; if (seen.has(e.type) && pool.length > 3) continue; seen.add(e.type); picks.push({ type: e.type, kid: e.stage !== 2 }); }
+  if (!picks.length) for (const t of START_DINOS.filter(t => !DEF[t].swim).slice(0, 3)) picks.push({ type: t, kid: false });
+  const G = rescueGeo();
+  rescue = { t: 0, lava: W * 0.86, doneT: 0, parts: [], drag: null, down: null,
+    dinos: picks.map((p, i) => { const d = DEF[p.type], b = d.box, s = Math.min(H * 0.3 / (b[3] - b[1]), W * 0.2 / (b[2] - b[0])) * (p.kid ? 0.75 : 1); return { type: p.type, d, s, x: W * (0.47 + i * 0.12), y: G.gy, vy: 0, state: 'wait', slot: -1, hop: 0, walk: 0, amp: 0, jaw: 0, roarT: 0, scareT: rnd(0.4, 1.6) }; }) };
+  volAlert = null; rescueEl.hidden = false; rescueCv.width = Math.round(W * DPR); rescueCv.height = Math.round(H * DPR);
+  rescueNameEl.textContent = 'Volcano rescue!'; rescueSubEl.textContent = 'Drag or tap each dinosaur to send it up the safe hill'; sfx.rumble(); say('Oh no, the volcano! Help the dinosaurs up the safe hill!');
+}
+function closeRescue() { if (!rescue) return; rescue = null; rescueEl.hidden = true; sfx.pick(); }
+const rpuff = (x, y, kind, n, o) => puff(x, y, kind, n, { ...o, into: rescue.parts });
+function rescueSafe(D) {
+  const R = rescue; D.state = 'safe'; D.slot = R.dinos.filter(d => d.state === 'safe').length - 1; D.hop = 0.45; sfx.yay(); say(D.d.name + ' is safe!');
+  rpuff(D.x, D.y - 40, 'star', 12, { cols: ['#ffd95a', '#fff6dc', '#8fe0a0'], v0: 120, v1: 320, s0: 8, s1: 14, t0: 0.6, t1: 1 });
+}
+function rboxOf(D) { const b = D.d.box, w = (b[2] - b[0]) * D.s; return [D.x - w / 2, D.y + b[1] * D.s - (D.d.fly ? H * 0.06 : 0), D.x + w / 2, D.y + b[3] * D.s]; }
+function updateRescue(dt) {
+  const R = rescue, G = rescueGeo(); R.t += dt;
+  if (rescueCv.width !== Math.round(W * DPR) || rescueCv.height !== Math.round(H * DPR)) { rescueCv.width = Math.round(W * DPR); rescueCv.height = Math.round(H * DPR); }
+  const waiting = R.dinos.filter(d => d.state === 'wait' || d.state === 'drag'), front = waiting.length ? Math.max(...waiting.map(d => d.x + (d.d.box[2] - d.d.box[0]) * d.s * 0.5)) + 60 : G.hx + G.hr;
+  R.lava = Math.max(Math.max(front, G.hx + G.hr), R.lava - W * 0.03 * dt);   // the lava creeps along but always stops short of a dinosaur
+  if (Math.random() < dt * 2) rpuff(W * 0.86 + rnd(-20, 20), H * 0.3, 'circle', 2, { cols: ['#ff7a1a', '#ffd23a', '#f2542d'], an: -Math.PI / 2, spread: 1.2, v0: 300, v1: 560, g: 700, s0: 5, s1: 10, t0: 1, t1: 1.6 });
+  for (const D of R.dinos) {
+    D.hop = Math.max(0, D.hop - dt); let ampT = 0, jawT = 0;
+    if (D.roarT > 0) { D.roarT -= dt; jawT = 1; }
+    if (D.state === 'wait') { D.vy += 2400 * dt; D.y = Math.min(G.gy, D.y + D.vy * dt); if (D.y >= G.gy) D.vy = 0; D.scareT -= dt; if (D.scareT <= 0) { D.scareT = rnd(2.5, 4.5); D.roarT = 0.7; D.hop = 0.3; } }
+    else if (D.state === 'drag') ampT = 1;
+    else if (D.state === 'run') { D.x -= W * 0.28 * dt; D.y = Math.min(hillY(G, D.x), G.gy); ampT = 1; if (D.x < G.hx + G.hr * 0.55) rescueSafe(D); }
+    else if (D.state === 'safe') { const tx = G.hx + (D.slot - 1) * W * 0.1, ty = hillY(G, tx); const dx = tx - D.x; D.x += clamp(dx, -W * 0.3 * dt, W * 0.3 * dt); D.y += (ty - D.y) * Math.min(1, dt * 8); ampT = Math.abs(dx) > 3 ? 1 : 0; }
+    D.amp += (ampT - D.amp) * Math.min(1, dt * 8); D.jaw += (jawT - D.jaw) * Math.min(1, dt * 14); D.walk += dt * 9 * D.amp;
+  }
+  if (!R.doneT && R.dinos.every(d => d.state === 'safe')) { R.doneT = R.t; later(0.6, () => { if (!rescue) return; sfx.fanfare(); say('Hooray! Everyone is safe!'); rescueSubEl.textContent = 'Everyone is safe!'; rpuff(W / 2, H * 0.4, 'star', 40, { cols: ['#ffd95a', '#fff6dc', '#ffb01f', '#8fe0a0'], v0: 200, v1: 600, s0: 10, s1: 20, t0: 0.8, t1: 1.5, r: 60 }); for (const D of rescue.dinos) D.hop = 0.45; }); }
+  if (R.doneT && R.t - R.doneT > 5) { closeRescue(); return; }
+  for (let i = R.parts.length - 1; i >= 0; i--) { const p = R.parts[i]; p.life += dt; if (p.life >= p.max) { R.parts.splice(i, 1); continue; } p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; }
+}
+function renderRescue() {
+  const R = rescue, G = rescueGeo(), x = rctx, cool = R.doneT ? clamp((R.t - R.doneT) / 2.5, 0, 1) : 0; x.setTransform(DPR, 0, 0, DPR, 0, 0);
+  let g = x.createLinearGradient(0, 0, 0, G.gy); g.addColorStop(0, cool ? '#9fd4f0' : '#ff9a6b'); g.addColorStop(1, cool ? '#e6f6f0' : '#ffe0a8'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // the volcano
+  const vx0 = W * 0.6, vx1 = W * 1.12, cx0 = W * 0.82, cx1 = W * 0.9, cy = H * 0.3;
+  x.fillStyle = '#6b4a3a'; x.strokeStyle = OUT; x.lineWidth = 4; x.lineJoin = 'round'; x.beginPath(); x.moveTo(vx0, G.gy); x.lineTo(cx0, cy); x.quadraticCurveTo((cx0 + cx1) / 2, cy + 18, cx1, cy); x.lineTo(vx1, G.gy); x.closePath(); x.fill(); x.stroke();
+  x.fillStyle = '#5a3c2e'; x.beginPath(); x.moveTo(W * 0.72, G.gy); x.lineTo(cx0 + 10, cy + 10); x.lineTo(W * 0.8, G.gy); x.closePath(); x.fill();
+  if (!cool) { x.strokeStyle = '#ff7a1a'; x.lineWidth = 12; x.lineCap = 'round'; for (const [a, b] of [[0.84, 0.74], [0.87, 0.95]]) { x.beginPath(); x.moveTo(W * a, cy + 6); x.quadraticCurveTo(W * (a + b) / 2 + 10, (cy + G.gy) / 2, W * b, G.gy - 6); x.stroke(); } x.fillStyle = '#ffd23a'; x.beginPath(); x.ellipse((cx0 + cx1) / 2, cy + 6, (cx1 - cx0) / 2, 10, 0, 0, TAU); x.fill(); }
+  for (let i = 0; i < 5; i++) { const k = (R.t * 0.18 + i / 5) % 1; x.fillStyle = cool ? 'rgba(255,255,255,' + 0.5 * (1 - k) + ')' : 'rgba(90,80,80,' + 0.6 * (1 - k) + ')'; circ(x, (cx0 + cx1) / 2 + Math.sin(i * 2 + R.t) * 30 * k, cy - k * H * 0.28, 24 + k * 60); x.fill(); }
+  // ground and the safe hill
+  g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#7ecb5c'); g.addColorStop(0.5, '#a8b860'); g.addColorStop(0.75, '#8a6a4a'); x.fillStyle = g; x.fillRect(0, G.gy, W, H - G.gy);
+  x.fillStyle = '#6cc35f'; x.strokeStyle = OUT; x.lineWidth = 4; x.beginPath(); x.moveTo(G.hx - G.hr, G.gy); for (let px = G.hx - G.hr; px <= G.hx + G.hr; px += 8) x.lineTo(px, hillY(G, px)); x.lineTo(G.hx + G.hr, G.gy); x.closePath(); x.fill(); x.stroke();
+  const fx = G.hx + G.hr * 0.05, fy = hillY(G, fx); x.lineWidth = 5; x.beginPath(); x.moveTo(fx, fy); x.lineTo(fx, fy - H * 0.16); x.stroke(); x.fillStyle = '#e2483d'; x.lineWidth = 3; x.beginPath(); x.moveTo(fx, fy - H * 0.16); x.lineTo(fx + 56 + Math.sin(R.t * 5) * 6, fy - H * 0.16 + 18); x.lineTo(fx, fy - H * 0.16 + 36); x.closePath(); x.fill(); x.stroke();
+  // the lava, which stops short of every dinosaur and turns to rock at the end
+  const lc = cool ? ['#6a625e', '#7d7470'] : ['#f2542d', '#ffb01f'];
+  g = x.createLinearGradient(R.lava, 0, W, 0); g.addColorStop(0, lc[1]); g.addColorStop(1, lc[0]); x.fillStyle = g; x.beginPath(); x.moveTo(W + 10, G.gy - 4);
+  for (let px = W + 10; px >= R.lava; px -= 14) x.lineTo(px, G.gy - 28 - Math.sin(px * 0.05 + R.t * 3) * 5 - (px - R.lava < 30 ? (30 - (px - R.lava)) * 0.4 : 0));
+  x.quadraticCurveTo(R.lava - 30, G.gy + 4, R.lava, G.gy + 22); x.lineTo(W + 10, G.gy + 22); x.closePath(); x.fill(); x.strokeStyle = OUT; x.lineWidth = 3; x.stroke();
+  if (!cool) for (let i = 0; i < 6; i++) { const bx = R.lava + 30 + ((i * 97 + R.t * 20) % Math.max(40, W - R.lava)), k = (R.t * 1.3 + i * 0.37) % 1; x.fillStyle = 'rgba(255,230,120,' + (1 - k) + ')'; circ(x, bx, G.gy - 12 - k * 10, 4 + k * 6); x.fill(); }
+  // the dinosaurs
+  const order = [...R.dinos].sort((a, b) => (a.state === 'drag') - (b.state === 'drag'));
+  for (const D of order) {
+    const b = D.d.box, hop = D.hop > 0 ? Math.sin(Math.PI * (1 - D.hop / 0.45)) * 40 : 0, lift = D.state === 'drag' ? 0 : 0, fly = D.d.fly ? H * 0.06 : 0, w = (b[2] - b[0]) * D.s;
+    x.globalAlpha = 0.25; x.fillStyle = '#000'; x.beginPath(); x.ellipse(D.x, D.state === 'drag' ? G.gy + 4 : D.y + 2, w * 0.42, w * 0.07, 0, 0, TAU); x.fill(); x.globalAlpha = 1;
+    x.save(); x.translate(D.x + (D.state === 'wait' && !reduceMotion ? Math.sin(R.t * 40) * 1.5 : 0), D.y - hop - lift - fly); x.scale(-D.s, D.s); x.translate(-(b[0] + b[2]) / 2, 0);
+    drawThing(x, D.type, { ...A0, time: R.t + D.slot, walk: D.walk, amp: D.amp, jaw: D.jaw, flap: R.t * 7.5, ow: clamp(3 / D.s, 1.5, 8), tex: true, closeUp: true, e: null }); x.restore();
+  }
+  if (!R.dinos.some(d => d.state !== 'wait') && R.t > 1) {   // a hint: an arrow from the first dinosaur to the hill
+    const D = R.dinos[0], k = (R.t * 0.7) % 1, sx = D.x, sy = D.y - 30, tx = G.hx, ty = hillY(G, G.hx) - 40, px = lerp(sx, tx, k), py = lerp(sy, ty, k) - Math.sin(Math.PI * k) * 80;
+    x.globalAlpha = 1 - k * 0.6; x.fillStyle = '#fff'; x.strokeStyle = OUT; x.lineWidth = 3; circ(x, px, py, 16); x.fill(); x.stroke(); x.globalAlpha = 1;
+  }
+  for (const p of R.parts) drawPart(p, x);
+}
+rescueCv.addEventListener('pointerdown', ev => {
+  const R = rescue; if (!R || R.doneT) return; ac(); ev.preventDefault(); const [px, py] = local(ev);
+  const hits = R.dinos.filter(d => { if (d.state === 'safe' || d.state === 'run') return false; const b = rboxOf(d), m = 30; return px > b[0] - m && px < b[2] + m && py > b[1] - m && py < b[3] + m; });
+  const D = hits.sort((a, b) => Math.abs(a.x - px) - Math.abs(b.x - px))[0]; if (!D) return;   // the one nearest the finger
+  R.drag = { D, ox: px - D.x, oy: py - D.y, x0: px, y0: py }; D.state = 'drag'; sfx.pick(); try { rescueCv.setPointerCapture(ev.pointerId); } catch (e) {}
+});
+rescueCv.addEventListener('pointermove', ev => { const R = rescue; if (!R || !R.drag) return; const [px, py] = local(ev), D = R.drag.D, G = rescueGeo(); D.x = clamp(px - R.drag.ox, 30, W - 30); D.y = Math.min(G.gy, py - R.drag.oy); });
+const rescueUp = () => {
+  const R = rescue; if (!R || !R.drag) return; const D = R.drag.D, G = rescueGeo(), moved = Math.hypot(D.x + R.drag.ox - R.drag.x0, D.y + R.drag.oy - R.drag.y0); R.drag = null;
+  if (moved < 16) { D.state = 'run'; sfx.boing(); return; }   // a tap: it runs up the hill by itself
+  if (D.x < G.hx + G.hr * 0.85) { D.y = Math.min(D.y, hillY(G, D.x)); rescueSafe(D); return; }
+  D.state = 'wait'; D.vy = 0; D.x = Math.min(D.x, R.lava - (D.d.box[2] - D.d.box[0]) * D.s * 0.5 - 40);
+};
+rescueCv.addEventListener('pointerup', rescueUp); rescueCv.addEventListener('pointercancel', rescueUp);
+document.getElementById('rescueClose').addEventListener('click', closeRescue);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeRescue(); });
 
 /* ============ dinosaur battle: a cartoon showdown. Each dinosaur fights its own way and nobody is ever really hurt ============ */
 const batBtn = document.getElementById('bat'), duelEl = document.getElementById('duel'), duelCv = document.getElementById('duelCv'), dctx = duelCv.getContext('2d');
@@ -2995,7 +3351,7 @@ function startEscape(e) {
   const p = dpos(e); dust(p[0], p[1]); sfx.alarm(); banner('Oh no! ' + e.def.name + ' escaped!', 'Tap it to catch it', 4500); say('Oh no! The ' + e.def.name + ' escaped!'); ensureVisible(p[0], p[1]);
 }
 function escapeTick(dt) {
-  if (care || duel || dig || chase || dinos.some(d => d.esc)) return;
+  if (care || duel || dig || chase || rescue || hunt || volAlert || dinos.some(d => d.esc)) return;
   escT -= dt; if (escT > 0) return; escT = rnd(300, 540);   // somewhere between 5 and 9 minutes of play
   const can = dinos.filter(d => d.stage !== 'egg' && !d.def.swim && !d.hurt && !d.pad.held && !d.food && d.drop <= 0); if (can.length) startEscape(pick(can));
 }
@@ -3244,7 +3600,7 @@ function start(data) {
   const frame = ts => {
     const raw = ts - last, dt = Math.min(0.05, Math.max(0, raw / 1000)); last = ts; time += dt;
     if (raw > 0 && raw < 250) { ema = ema * 0.95 + raw * 0.05; qT += raw; if (qT > 2500) { qT = 0; if (ema > 30 && Q < 2) { Q++; ema = 17; qT = -1500; resize(); } } }
-    update(dt); if (chase) { updateChase(dt); if (chase) renderChase(); } else if (dig) { updateDig(dt); if (dig) renderDig(); } else if (duel) { updateDuel(dt); if (duel) renderDuel(); } else if (care) { updateCare(dt); renderCare(); } else { render(); if (picking && picking.length) drawPickRing(); } requestAnimationFrame(frame);
+    update(dt); if (rescue) { updateRescue(dt); if (rescue) renderRescue(); } else if (chase) { updateChase(dt); if (chase) renderChase(); } else if (dig) { updateDig(dt); if (dig) renderDig(); } else if (duel) { updateDuel(dt); if (duel) renderDuel(); } else if (care) { updateCare(dt); renderCare(); } else { render(); if (picking && picking.length) drawPickRing(); } requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(app); else window.addEventListener('resize', resize);
@@ -3252,7 +3608,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { fightStats, roarBox: id => roarBox(id), SHEETS, SHEET_META, setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { fightStats, startHunt: n => startHunt(n), openRescue: () => openRescue(), get hunt() { return hunt; }, get rescue() { return rescue; }, get careState() { return care; }, huntTap: (x, y) => huntTap(x, y), roarBox: id => roarBox(id), SHEETS, SHEET_META, setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
