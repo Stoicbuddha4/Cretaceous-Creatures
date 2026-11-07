@@ -166,6 +166,13 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
 }
 #dig canvas{width:100%;height:100%;display:block;pointer-events:none}
 #dig:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+#catch{
+  position:absolute;right:calc(16px + var(--b)*.08 + var(--b)*.76 + 16px);top:calc(12px + var(--b)*.92 + 18px + var(--b)*.76 + 18px);
+  width:calc(var(--b)*.76);height:calc(var(--b)*.76);border-radius:50%;padding:0;overflow:hidden;
+  background:#8fd6f0;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);
+}
+#catch canvas{width:100%;height:100%;display:block;pointer-events:none}
+#catch:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
 #chase{position:absolute;inset:0;z-index:6;background:#8fd3f2;touch-action:none}
 #chaseCv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 #chaseBar{justify-content:space-between;padding:0 calc(16px + env(safe-area-inset-left,0px))}
@@ -227,6 +234,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
   <button id="rm" type="button" aria-label="Remove a paddock or building" aria-pressed="false" title="Remove a paddock or building"><svg viewBox="0 0 24 24" fill="none" stroke-width="4.2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg></button>
   <button id="bat" type="button" aria-label="Dinosaur battle" aria-pressed="false" title="Dinosaur battle"><canvas></canvas></button>
   <button id="dig" type="button" aria-label="Dig for fossils" title="Dig for fossils"><canvas></canvas></button>
+  <button id="catch" type="button" aria-label="Catch a runaway dinosaur" title="Catch a runaway dinosaur"><canvas></canvas></button>
   <div id="dock">
     <div id="tabs" role="tablist" aria-label="Kinds of things to add"></div>
     <div id="tray" role="tabpanel">
@@ -247,7 +255,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <div class="row" id="bkMain"><button id="bkSave" type="button">Back up to a file</button><button id="bkLoad" type="button" class="plain">Restore from a file</button></div>
       <div class="row" id="bkAsk" hidden><button id="bkYes" type="button">Restore it</button><button id="bkNo" type="button" class="plain">Cancel</button></div>
       <div class="row" style="margin-top:12px"><button id="bkClose" type="button" class="plain">Close</button></div>
-      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611072146</span></p>
+      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611072152</span></p>
       <input id="bkFile" type="file" accept=".json,application/json,text/plain" hidden>
     </div>
   </div>
@@ -2094,6 +2102,7 @@ function drawIcons() {
   const rc = document.querySelector('#roar canvas'); if (rc) fitIcon(rc, ['trex'], { box: [44, -212, 176, -122], fill: 1, pose: { jaw: 1, nod: -0.2, amp: 0 } });
   const bc = document.querySelector('#bat canvas'); if (bc) paintIcon(bc, drawVs);
   const dc = document.querySelector('#dig canvas'); if (dc) paintIcon(dc, drawDigIcon);
+  const nc = document.querySelector('#catch canvas'); if (nc) paintIcon(nc, (c, r) => { c.save(); c.translate(-r * 0.12, r * 0.62); const k = r * 2.1 / 128; c.scale(k, k); drawThing(c, 'jeep', { ...A0, time: 0, ow: clamp(2.2 / k, 2, 8), moving: false, cheer: 0, flare: 0, e: null }); c.restore(); drawNet(c, r * 0.42, -r * 0.4, r * 0.4, 1); });
 }
 const nameEl = document.getElementById('name'), nameText = document.getElementById('nameText'), nameDiet = document.getElementById('nameDiet'); let nameTimer = 0;
 function banner(title, sub, ms = 2600) { nameText.textContent = title; nameDiet.textContent = sub || ''; nameDiet.hidden = !sub; nameEl.hidden = true; void nameEl.offsetWidth; nameEl.hidden = false; clearTimeout(nameTimer); nameTimer = setTimeout(() => { nameEl.hidden = true; }, ms); }
@@ -3394,6 +3403,13 @@ digCv.addEventListener('pointermove', ev => {
 const digUp = () => { if (dig) { dig.ptr = null; dig.last = null; } };
 digCv.addEventListener('pointerup', digUp); digCv.addEventListener('pointercancel', digUp);
 digBtn.addEventListener('click', () => { ac(); if (care || duel || dig) return; openDig(); });
+/* the net button: chase a runaway right now. If one is already loose, go after that one; otherwise one makes a break for it */
+document.getElementById('catch').addEventListener('click', () => {
+  ac(); if (care || duel || dig || chase || rescue) return; setPlacing(null); if (moving) setMoving(false);
+  let e = dinos.find(d => d.esc);
+  if (!e) { const can = dinos.filter(d => d.stage !== 'egg' && !d.def.swim && !d.hurt && !d.pad.held && !d.food && d.drop <= 0); if (!can.length) { sfx.boing(); banner('No dinosaurs to chase', 'Hatch a land dinosaur first', 2600); return; } e = pick(can); startEscape(e); escT = rnd(300, 540); }
+  openChase(e);
+});
 digAgainBtn.addEventListener('click', () => { if (!dig) return; dig = null; openDig(); });
 digPlaceBtn.addEventListener('click', () => { if (!dig) return; const t = dig.type, i = TABS.findIndex(k => k.items.includes(t)); closeDig(); if (i >= 0) { selectTab(i); setPlacing(t); } });
 document.getElementById('digClose').addEventListener('click', closeDig);
