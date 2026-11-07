@@ -247,7 +247,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <div class="row" id="bkMain"><button id="bkSave" type="button">Back up to a file</button><button id="bkLoad" type="button" class="plain">Restore from a file</button></div>
       <div class="row" id="bkAsk" hidden><button id="bkYes" type="button">Restore it</button><button id="bkNo" type="button" class="plain">Cancel</button></div>
       <div class="row" style="margin-top:12px"><button id="bkClose" type="button" class="plain">Close</button></div>
-      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611072133</span></p>
+      <p style="margin:10px 0 0;font-size:12px;opacity:.55">Version <span id="bkVer">202611072140</span></p>
       <input id="bkFile" type="file" accept=".json,application/json,text/plain" hidden>
     </div>
   </div>
@@ -261,6 +261,7 @@ button:focus-visible{outline:4px solid var(--paper);outline-offset:2px}
       <button id="careFeed" class="cbtn" type="button" aria-label="Feed" title="Feed"><canvas></canvas></button>
       <button id="carePlay" class="cbtn" type="button" aria-label="Play" title="Play"><canvas></canvas></button>
       <button id="careWash" class="cbtn" type="button" aria-label="Wash" title="Wash"><canvas></canvas></button>
+      <button id="careFact" class="cbtn" type="button" aria-label="Fun fact" title="Fun fact"><canvas></canvas></button>
       <button id="careMed" class="cbtn" type="button" aria-label="Medicine" title="Medicine" hidden><canvas></canvas></button>
     </div>
   </div>
@@ -2166,7 +2167,7 @@ function paintIcon(cv, fn) { const dpr = Math.min(2, window.devicePixelRatio || 
 function sizeCare() {
   careCv.width = careOff.width = Math.round(W * DPR); careCv.height = careOff.height = Math.round(H * DPR);
   const br = document.getElementById('careBar').getBoundingClientRect(); care.barTop = br.height ? br.top - app.getBoundingClientRect().top : H * 0.9;
-  fitIcon(feedBtn.firstElementChild, [foodFor(care.e.def)], { fill: 0.78 }); paintIcon(playBtn.firstElementChild, drawBall); paintIcon(washBtn.firstElementChild, drawSoap); if (!medBtn.hidden) paintIcon(medBtn.firstElementChild, drawMed); paintHome();
+  fitIcon(feedBtn.firstElementChild, [foodFor(care.e.def)], { fill: 0.78 }); paintIcon(playBtn.firstElementChild, drawBall); paintIcon(washBtn.firstElementChild, drawSoap); paintIcon(document.getElementById('careFact').firstElementChild, drawBulb); if (!medBtn.hidden) paintIcon(medBtn.firstElementChild, drawMed); paintHome();
 }
 function openCare(e) {
   if (care || e.esc) return; ac(); setRemoving(false); if (paint) setPaint(paint); const egg = e.stage === 'egg';
@@ -2320,6 +2321,7 @@ function renderCare() {
   if (c.ball) { x.save(); x.translate(c.ball.x, c.ball.y); x.rotate(c.ball.rot); drawBall(x, c.ball.r); x.restore(); }
   drawMini(x, G);
   for (const p of c.parts) drawPart(p, x);
+  drawFact(x);
 }
 careCv.addEventListener('pointerdown', ev => {
   if (!care) return; ac(); const [px, py] = local(ev), G = careGeo(); if (care.e.stage === 'egg') { const b = care.eggBox; if (b && px > b[0] - 34 && px < b[2] + 34 && py > b[1] - 34 && py < b[3] + 34) tapEgg(); ev.preventDefault(); return; } care.ptr = [px, py]; care.down = [px, py]; try { careCv.setPointerCapture(ev.pointerId); } catch (e) {}
@@ -2348,6 +2350,67 @@ envRow.querySelectorAll('button').forEach(b => b.addEventListener('click', () =>
 })); medBtn.addEventListener('click', () => careDo('med')); washBtn.addEventListener('click', () => careDo('wash'));
 document.getElementById('careClose').addEventListener('click', closeCare);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeCare(); });
+
+
+/* ============ fun facts: the light-bulb button in the close-up reads one out and shows it ============ */
+const FACTS = {
+  trex: ["T. rex had one of the strongest bites of any land animal ever. It could crunch right through bone!", "T. rex had teeth as big as bananas.", "T. rex had tiny arms with just two fingers each, but they were very strong.", "T. rex had a super sniffer. It could smell food from far away."],
+  spino: ["Spinosaurus was even longer than T. rex!", "Spinosaurus had a giant sail on its back.", "Spinosaurus loved the water and ate lots of fish.", "Spinosaurus had a long snout, a bit like a crocodile's."],
+  raptor: ["Velociraptor was only about as big as a turkey!", "Velociraptor had feathers, like a bird.", "Velociraptor had a big curved claw on each foot.", "Velociraptor could run fast on its two legs."],
+  dilo: ["Dilophosaurus had two thin crests on top of its head.", "Dilophosaurus lived long before T. rex, way back in the Jurassic.", "Dilophosaurus was longer than a car.", "In the movies it spits, but the real Dilophosaurus probably could not spit at all."],
+  pachy: ["Pachycephalosaurus had a super thick, round dome on its head.", "Pachycephalosaurus had little bumps and spikes around its dome.", "Pachycephalosaurus ate plants.", "Scientists think they may have bonked heads, like goats do."],
+  para: ["Parasaurolophus had a long tube-shaped crest on its head.", "Parasaurolophus could probably blow air through its crest to honk like a trumpet!", "Parasaurolophus had a beak like a duck and lots of teeth for chewing plants."],
+  trike: ["Triceratops means three-horned face.", "Triceratops had a big bony frill behind its head.", "Triceratops lived at the same time as T. rex.", "Triceratops had hundreds of teeth for chewing tough plants."],
+  stego: ["Stegosaurus had big plates on its back and spikes on its tail.", "Stegosaurus had a small brain, about the size of a lime.", "Stegosaurus swung its spiky tail to keep meat eaters away.", "Stegosaurus lived so long ago that T. rex lived closer in time to us than to Stegosaurus!"],
+  brachio: ["Brachiosaurus was as tall as a four-story building!", "Brachiosaurus had front legs that were longer than its back legs.", "Brachiosaurus ate leaves from the tops of tall trees.", "Brachiosaurus was as heavy as about six elephants."],
+  ankylo: ["Ankylosaurus was covered in bony armor, like a tank.", "Ankylosaurus had a big bony club on the end of its tail.", "Ankylosaurus ate low plants close to the ground."],
+  ptera: ["Pteranodon was not a dinosaur. It was a flying reptile called a pterosaur.", "Pteranodon had no teeth at all.", "Pteranodon's wings were wider than a car is long.", "Pteranodon flew over the sea to catch fish."],
+  mosa: ["Mosasaurus was a giant sea reptile, not a dinosaur.", "Mosasaurus was a cousin of lizards and snakes.", "Mosasaurus was longer than a school bus.", "Mosasaurus even had teeth on the roof of its mouth!"],
+  diplo: ["Diplodocus was one of the longest dinosaurs ever, longer than two school buses.", "Diplodocus had a long, thin tail like a whip.", "Diplodocus had peg-shaped teeth for pulling off leaves."],
+  iguan: ["Iguanodon had a big spike on each thumb.", "Iguanodon was one of the very first dinosaurs scientists ever named.", "Iguanodon could walk on two legs or on four.", "Scientists once thought its thumb spike was a horn on its nose!"],
+  styra: ["Styracosaurus had a crown of long spikes on its frill.", "Styracosaurus had one big horn on its nose.", "Styracosaurus probably lived in groups, munching plants together."],
+  theri: ["Therizinosaurus had the longest claws of any dinosaur, about as long as a baseball bat!", "Even with giant claws, Therizinosaurus mostly ate plants.", "Therizinosaurus had a round belly and feathers."],
+  galli: ["Gallimimus means chicken copycat.", "Gallimimus was a fast runner, like an ostrich.", "Gallimimus had a beak with no teeth."],
+  kentro: ["Kentrosaurus was a cousin of Stegosaurus.", "Kentrosaurus had long spikes on its tail and shoulders.", "Kentrosaurus lived in Africa."],
+  carno: ["Carnotaurus means meat-eating bull, because of the two horns over its eyes.", "Carnotaurus had super tiny arms, even tinier than T. rex's!", "Scientists found prints of its skin, so we know it had bumpy, scaly skin.", "Carnotaurus had long legs built for running."],
+  allo: ["Allosaurus was the top meat eater of the Jurassic.", "Allosaurus had three big claws on each hand.", "Allosaurus had little horns above its eyes."],
+  giga: ["Giganotosaurus was one of the biggest meat-eating dinosaurs, about as long as T. rex.", "Giganotosaurus lived in South America.", "Giganotosaurus means giant southern lizard."],
+  bary: ["Baryonyx had a huge hooked claw on each thumb.", "Scientists found fish scales in its tummy, so we know it ate fish!", "Baryonyx was found in England by a man who loved hunting for fossils."],
+  compy: ["Compsognathus was tiny, about as big as a chicken.", "Scientists found a little lizard in its tummy. That was its lunch!", "Compsognathus had hollow bones, like a bird."],
+  cerato: ["Ceratosaurus had a horn on its nose.", "Ceratosaurus had a row of little bony bumps down its back.", "Ceratosaurus had really long teeth."],
+  elasmo: ["Elasmosaurus had a super long neck, longer than the rest of its body.", "Elasmosaurus had about seventy bones in its neck. A giraffe has just seven!", "Elasmosaurus swam with four big flippers.", "Elasmosaurus was a sea reptile, not a dinosaur."],
+  ichthy: ["Ichthyosaurus looked like a dolphin, but it was a reptile.", "Ichthyosaurus had big eyes to see in the dark sea.", "Ichthyosaurus mommies had their babies in the water instead of laying eggs."],
+  quetz: ["Quetzalcoatlus was one of the biggest flying animals ever.", "Quetzalcoatlus had wings as wide as a small airplane!", "Standing on the ground, Quetzalcoatlus was as tall as a giraffe.", "Quetzalcoatlus was a pterosaur, not a dinosaur."],
+  dimorph: ["Dimorphodon had a big head and a short beak full of teeth.", "Dimorphodon had two kinds of teeth. That is what its name means!", "Dimorphodon's wings were about as wide as a grown-up's arms stretched out.", "Dimorphodon was found in England by a famous fossil hunter named Mary Anning."],
+};
+const factBtn = document.getElementById('careFact'), factI = {};
+function drawBulb(c, r) {
+  c.lineJoin = 'round'; c.lineCap = 'round'; c.strokeStyle = OUT; c.lineWidth = Math.max(2, r * 0.09);
+  c.fillStyle = 'rgba(255,217,90,.35)'; circ(c, 0, -r * 0.22, r * 0.95); c.fill();
+  c.beginPath(); c.arc(0, -r * 0.25, r * 0.62, Math.PI * 0.8, Math.PI * 2.2); c.lineTo(r * 0.28, r * 0.42); c.lineTo(-r * 0.28, r * 0.42); c.closePath(); c.fillStyle = '#ffd95a'; c.fill(); c.stroke();
+  rrect(c, -r * 0.3, r * 0.42, r * 0.6, r * 0.42, r * 0.1); c.fillStyle = '#9aa3a8'; c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(-r * 0.3, r * 0.63); c.lineTo(r * 0.3, r * 0.63); c.stroke();
+  c.strokeStyle = '#fff'; c.lineWidth = Math.max(2, r * 0.08); c.beginPath(); c.arc(0, -r * 0.25, r * 0.38, Math.PI * 1.1, Math.PI * 1.45); c.stroke();
+}
+function tellFact() {
+  const c = care; if (!c || c.e.stage === 'egg') return; ac(); const id = c.e.def.id, list = FACTS[id]; if (!list) return;
+  const i = factI[id] = ((factI[id] ?? Math.floor(Math.random() * list.length) - 1) + 1) % list.length;
+  c.fact = { text: list[i], t0: c.t, dur: Math.max(6, list[i].split(' ').length * 0.55) }; sfx.ding(); say(list[i]); if (!c.act) c.hop = 0.45;
+}
+function drawFact(x) {
+  const c = care, F = c.fact; if (!F) return; const el = c.t - F.t0; if (el > F.dur) { c.fact = null; return; }
+  const a = Math.min(1, el / 0.25, (F.dur - el) / 0.4), fs = clamp(W * 0.028, 17, 30), maxW = Math.min(W * 0.72, 720);
+  x.save(); x.globalAlpha = a; x.font = '600 ' + fs + 'px system-ui, -apple-system, sans-serif';
+  const words = F.text.split(' '), lines = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (x.measureText(t).width > maxW - 40 && line) { lines.push(line); line = w; } else line = t; } lines.push(line);
+  const lh = fs * 1.3, bw = Math.min(maxW, Math.max(...lines.map(l => x.measureText(l).width)) + 48), bh = lines.length * lh + fs * 2.4, bx = W / 2 - bw / 2, by = Math.max(124, H * 0.15) + (1 - a) * 12;
+  x.fillStyle = '#fff6dc'; x.strokeStyle = OUT; x.lineWidth = 3; rrect(x, bx, by, bw, bh, 22); x.fill(); x.stroke();
+  x.fillStyle = '#ffd95a'; rrect(x, bx + 18, by - fs * 0.6, x.measureText('Did you know?').width * 0.8 + 28, fs * 1.2, fs * 0.6); x.fill(); x.stroke();
+  x.fillStyle = OUT; x.textBaseline = 'middle'; x.font = '700 ' + fs * 0.75 + 'px system-ui, -apple-system, sans-serif'; x.fillText('Did you know?', bx + 32, by);
+  x.font = '600 ' + fs + 'px system-ui, -apple-system, sans-serif'; x.textAlign = 'center'; lines.forEach((l, k) => x.fillText(l, W / 2, by + fs * 1.3 + lh * (k + 0.5)));
+  x.restore();
+}
+factBtn.addEventListener('click', tellFact);
 
 /* ============ more mini-games ============
    In the close-up: feeding toss (throw the right food into its mouth), bath time (rub up bubbles, then hose them off) and the dino doctor (temperature, say ahh, bandage).
@@ -3608,7 +3671,7 @@ function start(data) {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { save(); if (pending && cloud) { cloudT = 0; cloudSave(); } } });
   window.addEventListener('pagehide', save);
 }
-window.__cc = { fightStats, startHunt: n => startHunt(n), openRescue: () => openRescue(), get hunt() { return hunt; }, get rescue() { return rescue; }, get careState() { return care; }, huntTap: (x, y) => huntTap(x, y), roarBox: id => roarBox(id), SHEETS, SHEET_META, setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
+window.__cc = { fightStats, FACTS, tellFact: () => tellFact(), startHunt: n => startHunt(n), openRescue: () => openRescue(), get hunt() { return hunt; }, get rescue() { return rescue; }, get careState() { return care; }, huntTap: (x, y) => huntTap(x, y), roarBox: id => roarBox(id), SHEETS, SHEET_META, setGame: v => { GAMEART = !!v; }, setShadeOnly: v => { SHADE3D = !!v; }, setShade: v => { SHADE3D = !!v; }, get shade() { return SHADE3D; }, startEscape, openChase, throwNet, get chase() { return chase; }, set escT(v) { escT = v; }, get dig() { return dig; }, get unlocked() { return unlocked; }, openDig, isLocked, get duel() { return duel; }, get picking() { return picking; }, openDuel, duelDo, setPicking, pickFighter, closeDuel, get Q() { return Q; }, get sync() { return { cloud: !!cloud, pending, edits, stateTs, hadLocal }; }, get placing() { return placing; }, get care() { return care; }, openCare, careDo, objs, dinos, movers, foods, tiles, occ, cam, DEF, drawThing, A0, w2s, g2w, mpos, dpos, pbase, ocenter, serialize };
 const hot = window.claude && window.claude.hot;
 try { if (hot && hot.snapshot) hot.snapshot(() => serialize()); } catch (e) {}
 if (hot && hot.ready) hot.ready(d => start(d || {})); else start((hot && hot.data) || {});
